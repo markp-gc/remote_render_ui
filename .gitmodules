@@ -1,0 +1,6 @@
+[submodule "external/nanogui"]
+	path = external/nanogui
+	url = https://github.com/mitsuba-renderer/nanogui.git
+[submodule "external/packetcomms"]
+	path = external/packetcomms
+	url = https://github.com/mpups/packetcomms.git
