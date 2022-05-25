@@ -77,6 +77,11 @@ public:
     auto progress = new nanogui::ProgressBar(window);
     add_widget("Progress", progress);
 
+    add_button("Stop", [&]() {
+      bool stop = true;
+      serialise(sender, "stop", stop);
+    })->set_tooltip("Stop the remote application.");
+
     // Make a subscriber to receive progress updates:
     // (the progress pointer needs to be captured by value).
     progressSub = receiver.subscribe("progress", [progress](const ComPacket::ConstSharedPacket& packet) {
@@ -98,7 +103,7 @@ private:
 class InterfaceClient : public nanogui::Screen {
  public:
   InterfaceClient(PacketMuxer& sender, PacketDemuxer& receiver)
-      : nanogui::Screen(Vector2i(1280, 960), "InterfaceClient Gui", false) {
+      : nanogui::Screen(Vector2i(800, 600), "InterfaceClient Gui", false) {
     using namespace nanogui;
 
     form = new TestForm(this, sender, receiver);
@@ -143,7 +148,7 @@ int main(int argc, char** argv) {
     }
     BOOST_LOG_TRIVIAL(info) << "Connected to server " << host << ":" << port;
 
-    const std::vector<std::string> packetTypes{"progress", "env_rotation"};
+    const std::vector<std::string> packetTypes{"progress", "env_rotation", "stop"};
     auto sender = std::make_unique<PacketMuxer>(*socket, packetTypes);
     auto receiver = std::make_unique<PacketDemuxer>(*socket, packetTypes);
 
