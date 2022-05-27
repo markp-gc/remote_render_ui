@@ -71,6 +71,9 @@ public:
     slider->set_final_callback([&](float value) {
       serialise(sender, "env_rotation", value);
     });
+    slider->set_callback([&](float value) {
+      serialise(sender, "env_rotation", value);
+    });
     add_widget("Rotation", slider);
 
     add_group("Render Status");

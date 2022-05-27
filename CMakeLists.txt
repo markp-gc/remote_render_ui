@@ -23,10 +23,18 @@ add_definitions(${NANOGUI_EXTRA_DEFS})
 
 # Configure packetcomms suboroject:
 add_subdirectory(external/packetcomms)
-include_directories(${NANOGUI_EXTRA_INCS} ${PACKETCOMMS_INCLUDES})
+add_subdirectory(external/videolib)
+
+include_directories(${NANOGUI_EXTRA_INCS} ${PACKETCOMMS_INCLUDES} ${VIDEOLIB_INCLUDES})
 
 # Build the interface app:
 file(GLOB SRC ${PROJECT_SOURCE_DIR}/src/*.hpp ${PROJECT_SOURCE_DIR}/src/*.cpp)
 add_executable(remote-ui ${SRC})
-target_link_libraries(remote-ui Boost::program_options Boost::log nanogui ${NANOGUI_EXTRA_LIBS} ${OPENGL_LIBRARIES} ${PACKETCOMMS_LIBRARIES})
+target_link_libraries(
+  remote-ui
+  Boost::program_options Boost::log nanogui
+  ${NANOGUI_EXTRA_LIBS} ${OPENGL_LIBRARIES}
+  ${PACKETCOMMS_LIBRARIES} ${VIDEOLIB_LIBRARIES}
+)
+
 target_compile_definitions(remote-ui PRIVATE -DBOOST_LOG_DYN_LINK)
