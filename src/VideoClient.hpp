@@ -33,7 +33,7 @@ class VideoClient {
 
   bool receiveVideoFrame(std::function<void(LibAvCapture&)>);
 
-  double computeVideoBandwidthConsumed(double seconds);
+  double computeVideoBandwidthConsumed();
 
  protected:
   bool streamerOk() const;
@@ -55,6 +55,7 @@ class VideoClient {
   bool avHasTimedOut();
   std::chrono::steady_clock::time_point m_avDataTimeoutPoint;
   std::chrono::seconds m_avTimeout;
+  std::chrono::steady_clock::time_point m_lastBandwidthCalcTime;
 };
 
 #endif /* __VIDEO_CLIENT_H__ */

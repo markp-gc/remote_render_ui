@@ -3,12 +3,15 @@
 
 #include <chrono>
 
+#include <boost/log/trivial.hpp>
+
 VideoClient::VideoClient(PacketDemuxer& demuxer, const std::string& avPacketName)
     : m_packetOffset(0),
       m_avDataSubscription(
           demuxer.subscribe(avPacketName, [this](const ComPacket::ConstSharedPacket& packet) {
             m_avDataPackets.emplace(packet);
             m_totalVideoBytes += packet->getDataSize();
+            BOOST_LOG_TRIVIAL(trace) << "Received compressed video packet of size " << packet->getDataSize() << std::endl;
           })),
       m_avTimeout(0) {
 }
@@ -22,6 +25,8 @@ VideoClient::~VideoClient() {
 bool VideoClient::initialiseVideoStream(const std::chrono::seconds& videoTimeout) {
   m_avTimeout = videoTimeout;
   resetAvTimeout();
+
+  m_lastBandwidthCalcTime = std::chrono::steady_clock::now();
 
   // Create a video reader object that uses function/callback IO:
   m_videoIO.reset(new FFMpegStdFunctionIO(FFMpegCustomIO::ReadBuffer,
@@ -39,14 +44,21 @@ bool VideoClient::initialiseVideoStream(const std::chrono::seconds& videoTimeout
   }
 
   if (gotFrame == false) {
+    BOOST_LOG_TRIVIAL(info) << "Failed to initialise video stream.";
     return false;
   }
+
+  auto w = getFrameWidth();
+  auto h = getFrameHeight();
+  BOOST_LOG_TRIVIAL(info) << "Successfully initialised video stream: " << w << "x" << h;
 
   return true;
 }
 
 bool VideoClient::receiveVideoFrame(std::function<void(LibAvCapture&)> callback) {
-  assert(m_streamer != nullptr);
+  if (m_streamer == nullptr) {
+    throw std::logic_error(std::string(__FUNCTION__) + ": streamer object not allocated.");
+  }
 
   bool gotFrame = m_streamer->GetFrame();
   if (gotFrame) {
@@ -61,10 +73,13 @@ bool VideoClient::receiveVideoFrame(std::function<void(LibAvCapture&)> callback)
     @param seconds Time elapsed since last call to this function (assumes video has benn constantly streaming for this whole time).
     @return Bandwidth used by video stream in bits per second.
 */
-double VideoClient::computeVideoBandwidthConsumed(double seconds) {
-  double bits_per_sec   = (m_totalVideoBytes - m_lastTotalVideoBytes) * (8.0 / seconds);
+double VideoClient::computeVideoBandwidthConsumed() {
+  std::chrono::steady_clock::time_point timeNow = std::chrono::steady_clock::now();
+  const auto t2 = std::chrono::steady_clock::now();
+  double seconds = std::chrono::duration_cast<std::chrono::milliseconds>(timeNow - m_lastBandwidthCalcTime).count()/1000.0;
+  double bits_per_sec = (m_totalVideoBytes - m_lastTotalVideoBytes) * (8.0 / seconds);
   m_lastTotalVideoBytes = m_totalVideoBytes;
-  BOOST_LOG_TRIVIAL(trace) << "Video bit-rate: " << bits_per_sec << " bps" << std::endl;
+  m_lastBandwidthCalcTime = timeNow;
   return bits_per_sec;
 }
 
@@ -106,7 +121,7 @@ int VideoClient::readPacket(uint8_t* buffer, int size) {
   int required = size;
   while (required > 0 && m_avDataPackets.empty() == false) {
     const ComPacket::ConstSharedPacket packet = m_avDataPackets.front();
-    const int availableSize                   = packet->getData().size() - m_packetOffset;
+    const int availableSize = packet->getData().size() - m_packetOffset;
 
     if (availableSize <= required) {
       // Current packet contains less than required so copy the whole packet
@@ -117,7 +132,6 @@ int VideoClient::readPacket(uint8_t* buffer, int size) {
       buffer += availableSize;
       required -= availableSize;
     } else {
-      assert(availableSize > required);
       // Current packet contains more than enough to fulfill the request
       // so copy what is required and save the rest for later:
       auto startItr = packet->getData().begin() + m_packetOffset;

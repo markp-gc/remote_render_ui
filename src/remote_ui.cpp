@@ -6,12 +6,15 @@
 #include <PacketComms.h>
 #include <PacketSerialisation.h>
 #include <network/TcpSocket.h>
+#include "VideoClient.hpp"
 
 #include <chrono>
 #include <iostream>
 
 #include <boost/program_options.hpp>
+#include <boost/log/core.hpp>
 #include <boost/log/trivial.hpp>
+#include <boost/log/expressions.hpp>
 
 boost::program_options::options_description getOptions() {
   namespace po = boost::program_options;
@@ -25,7 +28,10 @@ boost::program_options::options_description getOptions() {
   ("host",
    po::value<std::string>()->default_value("localhost"),
    "Host to connect to."
-  );
+  )
+  ("log-level", po::value<std::string>()->default_value("info"),
+  "Set the log level to one of the following: 'trace', 'debug', 'info', 'warn', 'err', 'critical', 'off'.")
+  ;
   return desc;
 }
 
@@ -106,13 +112,65 @@ private:
 class InterfaceClient : public nanogui::Screen {
  public:
   InterfaceClient(PacketMuxer& sender, PacketDemuxer& receiver)
-      : nanogui::Screen(Vector2i(800, 600), "InterfaceClient Gui", false) {
+      : nanogui::Screen(Vector2i(1280, 900), "InterfaceClient Gui", false),
+        texture(nullptr) {
     using namespace nanogui;
+
+    videoClient.reset(new VideoClient(receiver, "render_preview"));
+    using namespace std::chrono_literals;
+
+    set_layout(new BoxLayout(Orientation::Horizontal, Alignment::Minimum, 0, 10));
+    auto previewWindow = new Window(this, "Render Preview");
+
+    bool videoOk = videoClient->initialiseVideoStream(2s);
+
+    if (videoOk) {
+      // Allocate a buffer to store the decoded and converted images:
+      auto w = videoClient->getFrameWidth();
+      auto h = videoClient->getFrameHeight();
+      bgrBuffer.resize(w * h * 3);
+      previewWindow->set_size(Vector2i(w, h));
+      previewWindow->set_position(Vector2i(10, 10));
+      previewWindow->set_layout(new GroupLayout(0));
+      imageView = new ImageView(previewWindow);
+
+      for (auto c = 0; c < bgrBuffer.size(); c += 3) {
+        bgrBuffer[c + 0] = 255;
+        bgrBuffer[c + 1] = 0;
+        bgrBuffer[c + 2] = 0;
+      }
+
+      texture = new Texture(
+        Texture::PixelFormat::RGB,
+        Texture::ComponentFormat::UInt8,
+        Vector2i(w, h),
+        Texture::InterpolationMode::Trilinear,
+        Texture::InterpolationMode::Nearest);
+      BOOST_LOG_TRIVIAL(trace) << "Created texture with "
+                               << texture->channels() << " channels, "
+                               << "data ptr: " << (void*)bgrBuffer.data();
+      texture->upload(bgrBuffer.data());
+
+      imageView->set_size(Vector2i(w, h));
+      imageView->set_image(texture);
+      imageView->center();
+      imageView->set_pixel_callback(
+        [this](const Vector2i& pos, char **out, size_t size) {
+          // The information provided by this callback is used to
+          // display pixel values at high magnification:
+          auto w = videoClient->getFrameWidth();
+          std::size_t index = (pos.x() + w * pos.y()) * 3;
+          for (int ch = 0; ch < 3; ++ch) {
+            uint8_t value = bgrBuffer[index + ch];
+            snprintf(out[ch], size, "%i", (int)value);
+          }
+        }
+      );
+    }
 
     form = new TestForm(this, sender, receiver);
 
     perform_layout();
-    form->center();
   }
 
   virtual bool keyboard_event(int key, int scancode, int action, int modifiers) {
@@ -126,16 +184,43 @@ class InterfaceClient : public nanogui::Screen {
   }
 
   virtual void draw(NVGcontext* ctx) {
+    auto gotFrame = videoClient->receiveVideoFrame(
+      [this](LibAvCapture& stream) {
+        BOOST_LOG_TRIVIAL(debug) << "Decoded video frame";
+        auto w = stream.GetFrameWidth();
+        auto h = stream.GetFrameHeight();
+        if (texture != nullptr) {
+          stream.ExtractRgbImage(bgrBuffer.data(), w * 3);
+          texture->upload(bgrBuffer.data());
+        }
+    });
+
+    if (gotFrame) {
+      double bps = videoClient->computeVideoBandwidthConsumed();
+      BOOST_LOG_TRIVIAL(debug) << "Video bit-rate: " << bps/(1024.0*1024.0) << " Mbps" << std::endl;
+    }
+
     Screen::draw(ctx);
   }
 
  private:
   TestForm* form;
+  std::unique_ptr<VideoClient> videoClient;
+  std::vector<std::uint8_t> bgrBuffer;
+  nanogui::Texture* texture;
+  nanogui::ImageView* imageView;
 };
 
 int main(int argc, char** argv) {
 
   auto args = parseOptions(argc, argv, getOptions());
+
+  namespace logging = boost::log;
+  auto logLevel = args.at("log-level").as<std::string>();
+  std::stringstream ss(logLevel);
+  logging::trivial::severity_level level;
+  ss >> level;
+  logging::core::get()->set_filter(logging::trivial::severity >= level);
 
   try {
     // Create comms system:
@@ -151,7 +236,7 @@ int main(int argc, char** argv) {
     }
     BOOST_LOG_TRIVIAL(info) << "Connected to server " << host << ":" << port;
 
-    const std::vector<std::string> packetTypes{"progress", "env_rotation", "stop"};
+    const std::vector<std::string> packetTypes{"progress", "env_rotation", "stop", "render_preview"};
     auto sender = std::make_unique<PacketMuxer>(*socket, packetTypes);
     auto receiver = std::make_unique<PacketDemuxer>(*socket, packetTypes);
 
