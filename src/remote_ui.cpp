@@ -128,27 +128,39 @@ class InterfaceClient : public nanogui::Screen {
       // Allocate a buffer to store the decoded and converted images:
       auto w = videoClient->getFrameWidth();
       auto h = videoClient->getFrameHeight();
-      bgrBuffer.resize(w * h * 3);
-      previewWindow->set_size(Vector2i(w, h));
-      previewWindow->set_position(Vector2i(10, 10));
-      previewWindow->set_layout(new GroupLayout(0));
-      imageView = new ImageView(previewWindow);
 
-      for (auto c = 0; c < bgrBuffer.size(); c += 3) {
-        bgrBuffer[c + 0] = 255;
-        bgrBuffer[c + 1] = 0;
-        bgrBuffer[c + 2] = 0;
-      }
-
+      // Create the texture first because internally nanogui will create
+      // one with the preferred format and we need to know how to allcoate
+      // the buffers:
       texture = new Texture(
         Texture::PixelFormat::RGB,
         Texture::ComponentFormat::UInt8,
         Vector2i(w, h),
         Texture::InterpolationMode::Trilinear,
         Texture::InterpolationMode::Nearest);
+      const auto ch = texture->channels();
       BOOST_LOG_TRIVIAL(trace) << "Created texture with "
                                << texture->channels() << " channels, "
                                << "data ptr: " << (void*)bgrBuffer.data();
+      if (!(ch == 3 || ch == 4)) {
+        throw std::logic_error("Texture returned has an unsupported number of texture channels.");
+      }
+
+      bgrBuffer.resize(w * h * ch);
+      previewWindow->set_size(Vector2i(w, h));
+      previewWindow->set_position(Vector2i(10, 10));
+      previewWindow->set_layout(new GroupLayout(0));
+      imageView = new ImageView(previewWindow);
+
+      for (auto c = 0; c < bgrBuffer.size(); c += ch) {
+        bgrBuffer[c + 0] = 255;
+        bgrBuffer[c + 1] = 0;
+        bgrBuffer[c + 2] = 0;
+        if (ch == 4) {
+          bgrBuffer[c + 3] = 128;
+        }
+      }
+
       texture->upload(bgrBuffer.data());
 
       imageView->set_size(Vector2i(w, h));
@@ -159,13 +171,16 @@ class InterfaceClient : public nanogui::Screen {
           // The information provided by this callback is used to
           // display pixel values at high magnification:
           auto w = videoClient->getFrameWidth();
-          std::size_t index = (pos.x() + w * pos.y()) * 3;
-          for (int ch = 0; ch < 3; ++ch) {
-            uint8_t value = bgrBuffer[index + ch];
-            snprintf(out[ch], size, "%i", (int)value);
+          std::size_t index = (pos.x() + w * pos.y()) * texture->channels();
+          for (int c = 0; c < texture->channels(); ++c) {
+            uint8_t value = bgrBuffer[index + c];
+            snprintf(out[c], size, "%i", (int)value);
           }
         }
       );
+      BOOST_LOG_TRIVIAL(info) << "Succesfully initialised video stream.";
+    } else {
+      BOOST_LOG_TRIVIAL(warning) << "Failed to initialise video stream.";
     }
 
     form = new TestForm(this, sender, receiver);
@@ -190,7 +205,13 @@ class InterfaceClient : public nanogui::Screen {
         auto w = stream.GetFrameWidth();
         auto h = stream.GetFrameHeight();
         if (texture != nullptr) {
-          stream.ExtractRgbImage(bgrBuffer.data(), w * 3);
+          if (texture->channels() == 3) {
+            stream.ExtractRgbImage(bgrBuffer.data(), w * texture->channels());
+          } else if (texture->channels() == 4) {
+            stream.ExtractRgbaImage(bgrBuffer.data(), w * texture->channels());
+          } else {
+            throw std::runtime_error("Unsupported number of texture channels");
+          }
           texture->upload(bgrBuffer.data());
         }
     });

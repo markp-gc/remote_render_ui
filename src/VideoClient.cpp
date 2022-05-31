@@ -33,6 +33,7 @@ bool VideoClient::initialiseVideoStream(const std::chrono::seconds& videoTimeout
                                           std::bind(&VideoClient::readPacket, std::ref(*this), std::placeholders::_1, std::placeholders::_2)));
   m_streamer.reset(new LibAvCapture(*m_videoIO));
   if (m_streamer->IsOpen() == false) {
+    BOOST_LOG_TRIVIAL(debug) << "Failed to open video stream.";
     return false;
   }
 
@@ -44,13 +45,13 @@ bool VideoClient::initialiseVideoStream(const std::chrono::seconds& videoTimeout
   }
 
   if (gotFrame == false) {
-    BOOST_LOG_TRIVIAL(info) << "Failed to initialise video stream.";
+    BOOST_LOG_TRIVIAL(debug) << "Failed to acquire frames from video stream.";
     return false;
   }
 
   auto w = getFrameWidth();
   auto h = getFrameHeight();
-  BOOST_LOG_TRIVIAL(info) << "Successfully initialised video stream: " << w << "x" << h;
+  BOOST_LOG_TRIVIAL(debug) << "Successfully initialised video stream: " << w << "x" << h;
 
   return true;
 }
