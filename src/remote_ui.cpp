@@ -71,16 +71,25 @@ public:
     window = add_window(nanogui::Vector2i(10, 10), "Control");
 
     add_group("Scene Parameters");
-    auto* slider = new nanogui::Slider(window);
-    slider->set_value(0.f);
-    slider->set_fixed_width(200);
-    slider->set_final_callback([&](float value) {
+    auto* rotSlider = new nanogui::Slider(window);
+    rotSlider->set_value(0.f);
+    rotSlider->set_fixed_width(200);
+    rotSlider->set_final_callback([&](float value) {
       serialise(sender, "env_rotation", value);
     });
-    slider->set_callback([&](float value) {
+    rotSlider->set_callback([&](float value) {
       serialise(sender, "env_rotation", value);
     });
-    add_widget("Rotation", slider);
+    add_widget("Env NIF Rotation", rotSlider);
+
+    add_group("Film Parameters");
+    auto* gammaSlider = new nanogui::Slider(window);
+    gammaSlider->set_value(2.2f / 3.f);
+    gammaSlider->set_fixed_width(200);
+    gammaSlider->set_callback([&](float value) {
+      serialise(sender, "gamma", value);
+    });
+    add_widget("Gamma", gammaSlider);
 
     add_group("Render Status");
     auto progress = new nanogui::ProgressBar(window);
@@ -112,7 +121,7 @@ private:
 class InterfaceClient : public nanogui::Screen {
  public:
   InterfaceClient(PacketMuxer& sender, PacketDemuxer& receiver)
-      : nanogui::Screen(Vector2i(1280, 900), "InterfaceClient Gui", false),
+      : nanogui::Screen(Vector2i(1280, 900), "IPU Neural Render Preview", false),
         texture(nullptr) {
     using namespace nanogui;
 
@@ -257,7 +266,7 @@ int main(int argc, char** argv) {
     }
     BOOST_LOG_TRIVIAL(info) << "Connected to server " << host << ":" << port;
 
-    const std::vector<std::string> packetTypes{"progress", "env_rotation", "stop", "render_preview"};
+    const std::vector<std::string> packetTypes{"progress", "env_rotation", "stop", "render_preview", "gamma"};
     auto sender = std::make_unique<PacketMuxer>(*socket, packetTypes);
     auto receiver = std::make_unique<PacketDemuxer>(*socket, packetTypes);
 
