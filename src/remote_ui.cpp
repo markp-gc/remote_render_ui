@@ -10,6 +10,7 @@
 
 #include <chrono>
 #include <iostream>
+#include <iomanip>
 
 #include <boost/program_options.hpp>
 #include <boost/log/core.hpp>
@@ -107,15 +108,38 @@ public:
       deserialise(packet, progressValue);
       progress->set_value(progressValue);
     });
+
+    add_group("Info/Stats");
+    bitRateText = new nanogui::TextBox(window, "-");
+    bitRateText->set_editable(false);
+    bitRateText->set_units("Mbps");
+    bitRateText->set_alignment(nanogui::TextBox::Alignment::Right);
+    add_widget("Video rate:", bitRateText);
+    auto text2 = new nanogui::TextBox(window, "-");
+    text2->set_editable(false);
+    text2->set_units("Mega-paths/sec");
+    text2->set_alignment(nanogui::TextBox::Alignment::Right);
+    add_widget("Sample rate:", text2);
+
+    sampleRateSub = receiver.subscribe("sample_rate", [text2](const ComPacket::ConstSharedPacket& packet) {
+      float rate = 0.f;
+      deserialise(packet, rate);
+      std::stringstream ss;
+      ss << std::fixed << std::setprecision(1) << rate/1e6;
+      text2->set_value(ss.str());
+    });
   }
 
   void center() {
     window->center();
   }
 
+  nanogui::TextBox* bitRateText;
+
 private:
   nanogui::Window* window;
   PacketSubscription progressSub;
+  PacketSubscription sampleRateSub;
 };
 
 class InterfaceClient : public nanogui::Screen {
@@ -227,7 +251,11 @@ class InterfaceClient : public nanogui::Screen {
 
     if (gotFrame) {
       double bps = videoClient->computeVideoBandwidthConsumed();
-      BOOST_LOG_TRIVIAL(debug) << "Video bit-rate: " << bps/(1024.0*1024.0) << " Mbps" << std::endl;
+      double mbps = bps/(1024.0*1024.0);
+      BOOST_LOG_TRIVIAL(debug) << "Video bit-rate: " << mbps << " Mbps" << std::endl;
+      std::stringstream ss;
+      ss << std::fixed << std::setprecision(2) << mbps;
+      form->bitRateText->set_value(ss.str());
     }
 
     Screen::draw(ctx);
@@ -266,7 +294,7 @@ int main(int argc, char** argv) {
     }
     BOOST_LOG_TRIVIAL(info) << "Connected to server " << host << ":" << port;
 
-    const std::vector<std::string> packetTypes{"progress", "env_rotation", "stop", "render_preview", "gamma"};
+    const std::vector<std::string> packetTypes{"progress", "env_rotation", "stop", "render_preview", "gamma", "sample_rate"};
     auto sender = std::make_unique<PacketMuxer>(*socket, packetTypes);
     auto receiver = std::make_unique<PacketDemuxer>(*socket, packetTypes);
 
