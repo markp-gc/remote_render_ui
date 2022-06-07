@@ -81,6 +81,7 @@ public:
     rotSlider->callback()(rotSlider->value());
     add_widget("Env NIF Rotation", rotSlider);
 
+    add_group("Camera Parameters");
     auto* fovSlider = new nanogui::Slider(window);
     fovSlider->set_fixed_width(250);
     fovSlider->set_callback([&](float value) {
