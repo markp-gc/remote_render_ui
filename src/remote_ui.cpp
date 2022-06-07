@@ -73,38 +73,42 @@ public:
 
     add_group("Scene Parameters");
     auto* rotSlider = new nanogui::Slider(window);
-    rotSlider->set_value(0.f);
     rotSlider->set_fixed_width(250);
     rotSlider->set_callback([&](float value) {
       serialise(sender, "env_rotation", value * 360.f);
     });
+    rotSlider->set_value(0.f);
+    rotSlider->callback()(rotSlider->value());
     add_widget("Env NIF Rotation", rotSlider);
 
     auto* fovSlider = new nanogui::Slider(window);
-    fovSlider->set_value(90.f / 360.f);
     fovSlider->set_fixed_width(250);
     fovSlider->set_callback([&](float value) {
       serialise(sender, "fov", value * 360.f);
     });
+    fovSlider->set_value(90.f / 360.f);
+    fovSlider->callback()(fovSlider->value());
     add_widget("Field of View", fovSlider);
 
     add_group("Film Parameters");
     auto* gammaSlider = new nanogui::Slider(window);
-    gammaSlider->set_value(2.2f / 4.f);
     gammaSlider->set_fixed_width(250);
     gammaSlider->set_callback([&](float value) {
       value = 4.f * value;
       serialise(sender, "gamma", value);
     });
+    gammaSlider->set_value(2.2f / 4.f);
+    gammaSlider->callback()(gammaSlider->value());
     add_widget("Gamma", gammaSlider);
 
     add_group("Render Status");
     auto progress = new nanogui::ProgressBar(window);
     add_widget("Progress", progress);
 
-    add_button("Stop", [&]() {
+    add_button("Stop", [screen, &sender]() {
       bool stop = true;
       serialise(sender, "stop", stop);
+      screen->set_visible(false);
     })->set_tooltip("Stop the remote application.");
 
     // Make a subscriber to receive progress updates:
