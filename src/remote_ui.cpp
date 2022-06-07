@@ -74,20 +74,26 @@ public:
     add_group("Scene Parameters");
     auto* rotSlider = new nanogui::Slider(window);
     rotSlider->set_value(0.f);
-    rotSlider->set_fixed_width(200);
-    rotSlider->set_final_callback([&](float value) {
-      serialise(sender, "env_rotation", value);
-    });
+    rotSlider->set_fixed_width(250);
     rotSlider->set_callback([&](float value) {
-      serialise(sender, "env_rotation", value);
+      serialise(sender, "env_rotation", value * 360.f);
     });
     add_widget("Env NIF Rotation", rotSlider);
 
+    auto* fovSlider = new nanogui::Slider(window);
+    fovSlider->set_value(90.f / 360.f);
+    fovSlider->set_fixed_width(250);
+    fovSlider->set_callback([&](float value) {
+      serialise(sender, "fov", value * 360.f);
+    });
+    add_widget("Field of View", fovSlider);
+
     add_group("Film Parameters");
     auto* gammaSlider = new nanogui::Slider(window);
-    gammaSlider->set_value(2.2f / 3.f);
-    gammaSlider->set_fixed_width(200);
+    gammaSlider->set_value(2.2f / 4.f);
+    gammaSlider->set_fixed_width(250);
     gammaSlider->set_callback([&](float value) {
+      value = 4.f * value;
       serialise(sender, "gamma", value);
     });
     add_widget("Gamma", gammaSlider);
@@ -294,7 +300,7 @@ int main(int argc, char** argv) {
     }
     BOOST_LOG_TRIVIAL(info) << "Connected to server " << host << ":" << port;
 
-    const std::vector<std::string> packetTypes{"progress", "env_rotation", "stop", "render_preview", "gamma", "sample_rate"};
+    const std::vector<std::string> packetTypes{"progress", "env_rotation", "stop", "render_preview", "gamma", "sample_rate", "fov"};
     auto sender = std::make_unique<PacketMuxer>(*socket, packetTypes);
     auto receiver = std::make_unique<PacketDemuxer>(*socket, packetTypes);
 
