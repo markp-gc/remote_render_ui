@@ -92,6 +92,16 @@ public:
     add_widget("Field of View", fovSlider);
 
     add_group("Film Parameters");
+    auto* exposureSlider = new nanogui::Slider(window);
+    exposureSlider->set_fixed_width(250);
+    exposureSlider->set_callback([&](float value) {
+      value = 4.f * (value - 0.5f);
+      serialise(sender, "exposure", value);
+    });
+    exposureSlider->set_value(.5f);
+    exposureSlider->callback()(exposureSlider->value());
+    add_widget("Exposure", exposureSlider);
+
     auto* gammaSlider = new nanogui::Slider(window);
     gammaSlider->set_fixed_width(250);
     gammaSlider->set_callback([&](float value) {
@@ -305,7 +315,10 @@ int main(int argc, char** argv) {
     }
     BOOST_LOG_TRIVIAL(info) << "Connected to server " << host << ":" << port;
 
-    const std::vector<std::string> packetTypes{"progress", "env_rotation", "stop", "render_preview", "gamma", "sample_rate", "fov"};
+    const std::vector<std::string> packetTypes{
+      "progress", "env_rotation", "stop", "render_preview",
+      "exposure", "gamma", "sample_rate", "fov"
+    };
     auto sender = std::make_unique<PacketMuxer>(*socket, packetTypes);
     auto receiver = std::make_unique<PacketDemuxer>(*socket, packetTypes);
 
