@@ -52,26 +52,21 @@ parseOptions(int argc, char** argv, boost::program_options::options_description&
 }
 
 using nanogui::ref;
-using nanogui::Shader;
 using nanogui::Vector2i;
 using nanogui::Vector3f;
 
-// Define Cereal support for nanogui types so that we can
-// send/receive them directly over packetcomms system.
-namespace nanogui {
-template <class T>
-void serialize(T& archive, Vector2i& p) {
-  archive(p[0], p[1]);
-}
-}  // namespace nanogui
-
-class TestForm : public nanogui::FormHelper {
+/// This control window sends and receives messages via a
+/// PacketMuxer and PacketDemuxer to enact a remote-controlled
+/// user interface.
+class ControlsForm : public nanogui::FormHelper {
 public:
-  TestForm(nanogui::Screen* screen, PacketMuxer& sender, PacketDemuxer& receiver)
+  ControlsForm(nanogui::Screen* screen, PacketMuxer& sender, PacketDemuxer& receiver)
       : nanogui::FormHelper(screen) {
     window = add_window(nanogui::Vector2i(10, 10), "Control");
 
+    // Scene controls
     add_group("Scene Parameters");
+
     auto* rotSlider = new nanogui::Slider(window);
     rotSlider->set_fixed_width(250);
     rotSlider->set_callback([&](float value) {
@@ -81,6 +76,7 @@ public:
     rotSlider->callback()(rotSlider->value());
     add_widget("Env NIF Rotation", rotSlider);
 
+    // Camera controls
     add_group("Camera Parameters");
     auto* fovSlider = new nanogui::Slider(window);
     fovSlider->set_fixed_width(250);
@@ -91,6 +87,7 @@ public:
     fovSlider->callback()(fovSlider->value());
     add_widget("Field of View", fovSlider);
 
+    // Sensor controls
     add_group("Film Parameters");
     auto* exposureSlider = new nanogui::Slider(window);
     exposureSlider->set_fixed_width(250);
@@ -112,6 +109,7 @@ public:
     gammaSlider->callback()(gammaSlider->value());
     add_widget("Gamma", gammaSlider);
 
+    // Info/stats/status:
     add_group("Render Status");
     auto progress = new nanogui::ProgressBar(window);
     add_widget("Progress", progress);
@@ -163,19 +161,22 @@ private:
   PacketSubscription sampleRateSub;
 };
 
-class InterfaceClient : public nanogui::Screen {
- public:
-  InterfaceClient(PacketMuxer& sender, PacketDemuxer& receiver)
-      : nanogui::Screen(Vector2i(1280, 900), "IPU Neural Render Preview", false),
-        texture(nullptr) {
+/// Window that receives an encoded video stream and displays
+/// it in a nanogui::ImageView that allows panning and zooming
+/// of the image. Video is decoded in the draw method (this is
+/// not ideal because it reduces the UI update rate to the video
+/// decode rate).
+class VideoPreviewWindow : public nanogui::Window {
+public:
+  VideoPreviewWindow(
+    nanogui::Screen* screen, const std::string& title, PacketDemuxer& receiver)
+    : nanogui::Window(screen, title),
+      videoClient(std::make_unique<VideoClient>(receiver, "render_preview")),
+      texture(nullptr),
+      mbps(0.0)
+  {
     using namespace nanogui;
-
-    videoClient.reset(new VideoClient(receiver, "render_preview"));
     using namespace std::chrono_literals;
-
-    set_layout(new BoxLayout(Orientation::Horizontal, Alignment::Minimum, 0, 10));
-    auto previewWindow = new Window(this, "Render Preview");
-
     bool videoOk = videoClient->initialiseVideoStream(2s);
 
     if (videoOk) {
@@ -201,10 +202,10 @@ class InterfaceClient : public nanogui::Screen {
       }
 
       bgrBuffer.resize(w * h * ch);
-      previewWindow->set_size(Vector2i(w, h));
-      previewWindow->set_position(Vector2i(10, 10));
-      previewWindow->set_layout(new GroupLayout(0));
-      imageView = new ImageView(previewWindow);
+      this->set_size(Vector2i(w, h));
+      this->set_position(Vector2i(10, 10));
+      this->set_layout(new GroupLayout(0));
+      imageView = new ImageView(this);
 
       for (auto c = 0; c < bgrBuffer.size(); c += ch) {
         bgrBuffer[c + 0] = 255;
@@ -236,20 +237,6 @@ class InterfaceClient : public nanogui::Screen {
     } else {
       BOOST_LOG_TRIVIAL(warning) << "Failed to initialise video stream.";
     }
-
-    form = new TestForm(this, sender, receiver);
-
-    perform_layout();
-  }
-
-  virtual bool keyboard_event(int key, int scancode, int action, int modifiers) {
-    if (Screen::keyboard_event(key, scancode, action, modifiers))
-      return true;
-    if (key == GLFW_KEY_ESCAPE && action == GLFW_PRESS) {
-      set_visible(false);
-      return true;
-    }
-    return false;
   }
 
   virtual void draw(NVGcontext* ctx) {
@@ -272,22 +259,71 @@ class InterfaceClient : public nanogui::Screen {
 
     if (gotFrame) {
       double bps = videoClient->computeVideoBandwidthConsumed();
-      double mbps = bps/(1024.0*1024.0);
+      mbps = bps/(1024.0*1024.0);
       BOOST_LOG_TRIVIAL(debug) << "Video bit-rate: " << mbps << " Mbps" << std::endl;
-      std::stringstream ss;
-      ss << std::fixed << std::setprecision(2) << mbps;
-      form->bitRateText->set_value(ss.str());
     }
 
-    Screen::draw(ctx);
+    nanogui::Window::draw(ctx);
   }
 
- private:
-  TestForm* form;
+  double getVideoBandwidthMbps() { return mbps; }
+
+  void reset() { imageView->reset(); }
+
+private:
   std::unique_ptr<VideoClient> videoClient;
   std::vector<std::uint8_t> bgrBuffer;
   nanogui::Texture* texture;
   nanogui::ImageView* imageView;
+  double mbps;
+};
+
+/// A screen containing all the application's other window.
+class InterfaceClient : public nanogui::Screen {
+ public:
+  InterfaceClient(PacketMuxer& sender, PacketDemuxer& receiver)
+      : nanogui::Screen(Vector2i(1280, 800), "IPU Neural Render Preview", false)
+  {
+    using namespace nanogui;
+    set_layout(new BoxLayout(Orientation::Horizontal, Alignment::Minimum, 0, 10));
+    preview = new VideoPreviewWindow(this, "Render Preview", receiver);
+    form = new ControlsForm(this, sender, receiver);
+
+    perform_layout();
+  }
+
+  virtual bool keyboard_event(int key, int scancode, int action, int modifiers) {
+    if (Screen::keyboard_event(key, scancode, action, modifiers)) {
+      return true;
+    }
+
+    if (action == GLFW_PRESS) {
+      if (key == GLFW_KEY_R) {
+          preview->reset();
+          return true;
+      }
+      if (key == GLFW_KEY_ESCAPE) {
+        set_visible(false);
+        return true;
+      }
+    }
+
+    return false;
+  }
+
+  virtual void draw(NVGcontext* ctx) {
+    // Update bandwidth before display:
+    std::stringstream ss;
+    ss << std::fixed << std::setprecision(2)
+       << preview->getVideoBandwidthMbps();
+    form->bitRateText->set_value(ss.str());
+
+    Screen::draw(ctx);
+  }
+
+private:
+  VideoPreviewWindow* preview;
+  ControlsForm* form;
 };
 
 int main(int argc, char** argv) {
