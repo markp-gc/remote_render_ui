@@ -17,6 +17,8 @@
 #include <boost/log/trivial.hpp>
 #include <boost/log/expressions.hpp>
 
+#include <cereal/types/string.hpp>
+
 boost::program_options::options_description getOptions() {
   namespace po = boost::program_options;
   po::options_description desc("Options");
@@ -60,6 +62,9 @@ using nanogui::Vector3f;
 /// user interface.
 class ControlsForm : public nanogui::FormHelper {
 public:
+
+  using FileLookup = std::map<std::string, std::string>;
+
   ControlsForm(nanogui::Screen* screen, PacketMuxer& sender, PacketDemuxer& receiver)
       : nanogui::FormHelper(screen) {
     window = add_window(nanogui::Vector2i(10, 10), "Control");
@@ -75,6 +80,15 @@ public:
     rotSlider->set_value(0.f);
     rotSlider->callback()(rotSlider->value());
     add_widget("Env NIF Rotation", rotSlider);
+
+    nifChooser = new nanogui::ComboBox(window);
+    nifChooser->set_callback([&](int index) {
+      auto path = fileMapping.at(nifChooser->items()[index]);
+      BOOST_LOG_TRIVIAL(debug) << "Sending new NIF path: " << path;
+      serialise(sender, "load_nif", path);
+    });
+    nifChooser->set_font_size(16);
+    add_widget("Choose NIF HDRI: ", nifChooser);
 
     // Camera controls
     add_group("Camera Parameters");
@@ -149,14 +163,25 @@ public:
     });
   }
 
-  void center() {
-    window->center();
+  void set_position(const nanogui::Vector2i& pos) {
+    window->set_position(pos);
+  }
+
+  void set_nif_selection(const FileLookup& nifFileMapping) {
+    fileMapping = nifFileMapping;
+    std::vector<std::string> items;
+    for (const auto& p : nifFileMapping) {
+      items.push_back(p.first);
+    }
+    nifChooser->set_items(items);
   }
 
   nanogui::TextBox* bitRateText;
 
 private:
+  FileLookup fileMapping;
   nanogui::Window* window;
+  nanogui::ComboBox* nifChooser;
   PacketSubscription progressSub;
   PacketSubscription sampleRateSub;
 };
@@ -203,7 +228,6 @@ public:
 
       bgrBuffer.resize(w * h * ch);
       this->set_size(Vector2i(w, h));
-      this->set_position(Vector2i(10, 10));
       this->set_layout(new GroupLayout(0));
       imageView = new ImageView(this);
 
@@ -280,15 +304,23 @@ private:
 
 /// A screen containing all the application's other window.
 class InterfaceClient : public nanogui::Screen {
- public:
+public:
+
   InterfaceClient(PacketMuxer& sender, PacketDemuxer& receiver)
-      : nanogui::Screen(Vector2i(1280, 800), "IPU Neural Render Preview", false)
+  :
+    nanogui::Screen(Vector2i(1280, 800), "IPU Neural Render Preview", false),
+    preview(nullptr),
+    form(nullptr)
   {
-    using namespace nanogui;
-    set_layout(new BoxLayout(Orientation::Horizontal, Alignment::Minimum, 0, 10));
     preview = new VideoPreviewWindow(this, "Render Preview", receiver);
     form = new ControlsForm(this, sender, receiver);
 
+    // Have to manually set positions due to bug in ComboBox:
+    const int margin = 10;
+    Vector2i pos(margin, margin);
+    preview->set_position(pos);
+    pos[0] += margin + preview->width();
+    form->set_position(Vector2i(pos));
     perform_layout();
   }
 
@@ -312,13 +344,19 @@ class InterfaceClient : public nanogui::Screen {
   }
 
   virtual void draw(NVGcontext* ctx) {
-    // Update bandwidth before display:
-    std::stringstream ss;
-    ss << std::fixed << std::setprecision(2)
-       << preview->getVideoBandwidthMbps();
-    form->bitRateText->set_value(ss.str());
-
+    if (preview != nullptr && form != nullptr) {
+      // Update bandwidth before display:
+      std::stringstream ss;
+      ss << std::fixed << std::setprecision(2)
+        << preview->getVideoBandwidthMbps();
+      form->bitRateText->set_value(ss.str());
+    }
     Screen::draw(ctx);
+  }
+
+  void set_nif_selection(const ControlsForm::FileLookup& nifFileMapping) {
+    form->set_nif_selection(nifFileMapping);
+    perform_layout();
   }
 
 private:
@@ -351,17 +389,27 @@ int main(int argc, char** argv) {
     }
     BOOST_LOG_TRIVIAL(info) << "Connected to server " << host << ":" << port;
 
+    // Packet names must match those compiled on the server:
     const std::vector<std::string> packetTypes{
       "progress", "env_rotation", "stop", "render_preview",
-      "exposure", "gamma", "sample_rate", "fov"
+      "exposure", "gamma", "sample_rate", "fov",
+      "load_nif"
     };
     auto sender = std::make_unique<PacketMuxer>(*socket, packetTypes);
     auto receiver = std::make_unique<PacketDemuxer>(*socket, packetTypes);
+
+    // Hard code a mapping from NIF name to remote
+    // paths (for now):
+    std::map<std::string, std::string> remoteNifModels = {
+      {"Urban Alley", "/home/ubuntu/workspace/nif_models/urban_alley_01_4k_fp16_ycocg/assets.extra"},
+      {"Country Club", "/home/ubuntu/workspace/nif_models/country_club_4k_fp16_ycocg/assets.extra"}
+    };
 
     nanogui::init();
 
     {
       nanogui::ref<InterfaceClient> app = new InterfaceClient(*sender, *receiver);
+      app->set_nif_selection(remoteNifModels);
       app->draw_all();
       app->set_visible(true);
       nanogui::mainloop(1 / 60.f * 1000);
