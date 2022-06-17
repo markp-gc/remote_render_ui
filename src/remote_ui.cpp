@@ -11,7 +11,10 @@
 #include <chrono>
 #include <iostream>
 #include <iomanip>
+#include <map>
 
+#include <boost/property_tree/ptree.hpp>
+#include <boost/property_tree/json_parser.hpp>
 #include <boost/program_options.hpp>
 #include <boost/log/core.hpp>
 #include <boost/log/trivial.hpp>
@@ -34,7 +37,11 @@ boost::program_options::options_description getOptions() {
   )
   ("log-level", po::value<std::string>()->default_value("info"),
   "Set the log level to one of the following: 'trace', 'debug', 'info', 'warn', 'err', 'critical', 'off'.")
-  ;
+  ("nif-paths", po::value<std::string>()->default_value(""),
+   "JSON file containing a mapping from menu names to paths to NIF models on the remote. Used to build the NIF selection menu."
+  )
+  ("width,w", po::value<int>()->default_value(1320), "Main window width in pixels.")
+  ("height,h", po::value<int>()->default_value(800), "Main window height in pixels.");
   return desc;
 }
 
@@ -81,7 +88,10 @@ public:
     rotSlider->callback()(rotSlider->value());
     add_widget("Env NIF Rotation", rotSlider);
 
-    nifChooser = new nanogui::ComboBox(window);
+    nifChooser = new nanogui::ComboBox(window, {"No NIF models available"});
+    nifChooser->set_enabled(false);
+    nifChooser->set_side(nanogui::Popup::Side::Left);
+    nifChooser->set_tooltip("Pass a JSON file using '--nif-paths' option to enable selection.");
     nifChooser->set_callback([&](int index) {
       auto path = fileMapping.at(nifChooser->items()[index]);
       BOOST_LOG_TRIVIAL(debug) << "Sending new NIF path: " << path;
@@ -174,6 +184,12 @@ public:
       items.push_back(p.first);
     }
     nifChooser->set_items(items);
+    nifChooser->set_tooltip("Tell the remote application to load a new NIF model.");
+    nifChooser->set_enabled(true);
+    if (nifChooser->items().size() > 0) {
+      nifChooser->set_selected_index(0);
+      nifChooser->callback()(0);
+    }
   }
 
   nanogui::TextBox* bitRateText;
@@ -306,9 +322,9 @@ private:
 class InterfaceClient : public nanogui::Screen {
 public:
 
-  InterfaceClient(PacketMuxer& sender, PacketDemuxer& receiver)
+  InterfaceClient(const Vector2i& size, PacketMuxer& sender, PacketDemuxer& receiver)
   :
-    nanogui::Screen(Vector2i(1280, 800), "IPU Neural Render Preview", false),
+    nanogui::Screen(size, "IPU Neural Render Preview", false),
     preview(nullptr),
     form(nullptr)
   {
@@ -364,6 +380,26 @@ private:
   ControlsForm* form;
 };
 
+std::map<std::string, std::string>
+jsonFileToMap(const std::string& file) {
+  std::map<std::string, std::string> m;
+
+  using boost::property_tree::ptree;
+  using boost::property_tree::read_json;
+  using boost::property_tree::write_json;
+  ptree pt;
+  read_json(file, pt);
+
+  for (const auto& p : pt) {
+    const std::string& name = p.first;
+    auto path = p.second.get<std::string>("");
+    m.insert(std::make_pair(name, path));
+    BOOST_LOG_TRIVIAL(debug) << "Loaded NIF entry. Name: '" << name << "' remote-path: '" << path << "'";
+  }
+
+  return m;
+}
+
 int main(int argc, char** argv) {
 
   auto args = parseOptions(argc, argv, getOptions());
@@ -376,6 +412,13 @@ int main(int argc, char** argv) {
   logging::core::get()->set_filter(logging::trivial::severity >= level);
 
   try {
+    // Parse NIF description before attempting to connect:
+    std::map<std::string, std::string> remoteNifModels;
+    auto nifPathJsonFile = args.at("nif-paths").as<std::string>();
+    if (!nifPathJsonFile.empty()) {
+      remoteNifModels = jsonFileToMap(nifPathJsonFile);
+    }
+
     // Create comms system:
     using namespace std::chrono_literals;
 
@@ -398,18 +441,16 @@ int main(int argc, char** argv) {
     auto sender = std::make_unique<PacketMuxer>(*socket, packetTypes);
     auto receiver = std::make_unique<PacketDemuxer>(*socket, packetTypes);
 
-    // Hard code a mapping from NIF name to remote
-    // paths (for now):
-    std::map<std::string, std::string> remoteNifModels = {
-      {"Urban Alley", "/home/ubuntu/workspace/nif_models/urban_alley_01_4k_fp16_ycocg/assets.extra"},
-      {"Country Club", "/home/ubuntu/workspace/nif_models/country_club_4k_fp16_ycocg/assets.extra"}
-    };
-
     nanogui::init();
 
     {
-      nanogui::ref<InterfaceClient> app = new InterfaceClient(*sender, *receiver);
-      app->set_nif_selection(remoteNifModels);
+      const auto w = args.at("width").as<int>();
+      const auto h = args.at("height").as<int>();
+      nanogui::Vector2i screenSize(w, h);
+      nanogui::ref<InterfaceClient> app = new InterfaceClient(screenSize, *sender, *receiver);
+      if (!remoteNifModels.empty()) {
+        app->set_nif_selection(remoteNifModels);
+      }
       app->draw_all();
       app->set_visible(true);
       nanogui::mainloop(1 / 60.f * 1000);
