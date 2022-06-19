@@ -1,6 +1,9 @@
 {
   "Adams Place Bridge": "\/home\/ubuntu\/workspace\/nif_models\/adams_place_bridge_4k_fp16_ycocg\/assets.extra",
   "Borghese Gardens": "\/home\/ubuntu\/workspace\/nif_models\/borghese_gardens_4k_fp16_ycocg\/assets.extra",
+  "Borghese Gardens YUV": "\/home\/ubuntu\/workspace\/nif_models\/borghese_gardens_4k_fp16_yuv\/assets.extra",
+  "Christmas Photo Studio 03": "\/home\/ubuntu\/workspace\/nif_models\/christmas_photo_studio_03_4k_fp16_ycocg\/assets.extra",
+  "Christmas Photo Studio 03 (YUV)": "\/home\/ubuntu\/workspace\/nif_models\/christmas_photo_studio_03_4k_fp16_yuv\/assets.extra",
   "Country Club": "\/home\/ubuntu\/workspace\/nif_models\/country_club_4k_fp16_ycocg\/assets.extra",
   "Dikhololo Night": "\/home\/ubuntu\/workspace\/nif_models\/dikhololo_night_4k_fp16_ycocg\/assets.extra",
   "Shanghai Bund": "\/home\/ubuntu\/workspace\/nif_models\/shanghai_bund_4k_fp16_ycocg\/assets.extra",

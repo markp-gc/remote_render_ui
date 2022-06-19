@@ -12,6 +12,8 @@
 #include <iostream>
 #include <iomanip>
 #include <map>
+#include <thread>
+#include <mutex>
 
 #include <boost/property_tree/ptree.hpp>
 #include <boost/property_tree/json_parser.hpp>
@@ -204,9 +206,9 @@ private:
 
 /// Window that receives an encoded video stream and displays
 /// it in a nanogui::ImageView that allows panning and zooming
-/// of the image. Video is decoded in the draw method (this is
-/// not ideal because it reduces the UI update rate to the video
-/// decode rate).
+/// of the image. Video is decoded in a separate thread to keep
+/// the UI widgets responsive (although their effect will be
+/// limited by the video rate).
 class VideoPreviewWindow : public nanogui::Window {
 public:
   VideoPreviewWindow(
@@ -214,7 +216,9 @@ public:
     : nanogui::Window(screen, title),
       videoClient(std::make_unique<VideoClient>(receiver, "render_preview")),
       texture(nullptr),
-      mbps(0.0)
+      mbps(0.0),
+      newFrameDecoded(false),
+      runDecoderThread(true)
   {
     using namespace nanogui;
     using namespace std::chrono_literals;
@@ -273,19 +277,55 @@ public:
           }
         }
       );
+
       BOOST_LOG_TRIVIAL(info) << "Succesfully initialised video stream.";
+      startDecodeThread();
+
     } else {
       BOOST_LOG_TRIVIAL(warning) << "Failed to initialise video stream.";
     }
   }
 
-  virtual void draw(NVGcontext* ctx) {
-    auto gotFrame = videoClient->receiveVideoFrame(
+  void startDecodeThread() {
+    // Thread just decodes video frames as fast as it can:
+    videoDecodeThread.reset(new std::thread([&]() {
+      BOOST_LOG_TRIVIAL(debug) << "Video decode thread launched.";
+      if (videoClient == nullptr) {
+        BOOST_LOG_TRIVIAL(debug) << "Video client must be initialised before decoding.";
+        throw std::logic_error("No VideoClient object available.");
+      }
+
+      while(runDecoderThread) { decodeVideoFrame(); }
+    }));
+  }
+
+  void stopDecodeThread() {
+    runDecoderThread = false;
+    if (videoDecodeThread) {
+      try {
+        videoDecodeThread->join();
+        BOOST_LOG_TRIVIAL(debug) << "Video decode thread joined successfully.";
+        videoDecodeThread.reset();
+      } catch (std::system_error& e) {
+        BOOST_LOG_TRIVIAL(warning) << "Video decode thread could not be joined.";
+      }
+    }
+  }
+
+  virtual ~VideoPreviewWindow() {
+    stopDecodeThread();
+  }
+
+  /// Decode a video frame into the buffer.
+  void decodeVideoFrame() {
+    newFrameDecoded = videoClient->receiveVideoFrame(
       [this](LibAvCapture& stream) {
         BOOST_LOG_TRIVIAL(debug) << "Decoded video frame";
         auto w = stream.GetFrameWidth();
         auto h = stream.GetFrameHeight();
         if (texture != nullptr) {
+          // Extract decoded data to the buffer:
+          std::lock_guard<std::mutex> lock(bufferMutex);
           if (texture->channels() == 3) {
             stream.ExtractRgbImage(bgrBuffer.data(), w * texture->channels());
           } else if (texture->channels() == 4) {
@@ -293,14 +333,22 @@ public:
           } else {
             throw std::runtime_error("Unsupported number of texture channels");
           }
-          texture->upload(bgrBuffer.data());
         }
     });
 
-    if (gotFrame) {
+    if (newFrameDecoded) {
       double bps = videoClient->computeVideoBandwidthConsumed();
       mbps = bps/(1024.0*1024.0);
       BOOST_LOG_TRIVIAL(debug) << "Video bit-rate: " << mbps << " Mbps" << std::endl;
+    }
+
+  }
+
+  virtual void draw(NVGcontext* ctx) {
+    // Upload latest buffer contents to video texture:
+    if (texture != nullptr) {
+      std::lock_guard<std::mutex> lock(bufferMutex);
+      texture->upload(bgrBuffer.data());
     }
 
     nanogui::Window::draw(ctx);
@@ -316,6 +364,11 @@ private:
   nanogui::Texture* texture;
   nanogui::ImageView* imageView;
   double mbps;
+
+  std::unique_ptr<std::thread> videoDecodeThread;
+  std::mutex bufferMutex;
+  std::atomic<bool> newFrameDecoded;
+  std::atomic<bool> runDecoderThread;
 };
 
 /// A screen containing all the application's other window.
@@ -447,12 +500,12 @@ int main(int argc, char** argv) {
       const auto w = args.at("width").as<int>();
       const auto h = args.at("height").as<int>();
       nanogui::Vector2i screenSize(w, h);
-      nanogui::ref<InterfaceClient> app = new InterfaceClient(screenSize, *sender, *receiver);
+      InterfaceClient app(screenSize, *sender, *receiver);
       if (!remoteNifModels.empty()) {
-        app->set_nif_selection(remoteNifModels);
+        app.set_nif_selection(remoteNifModels);
       }
-      app->draw_all();
-      app->set_visible(true);
+      app.draw_all();
+      app.set_visible(true);
       nanogui::mainloop(1 / 60.f * 1000);
     }
 
