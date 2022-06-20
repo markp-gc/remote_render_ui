@@ -1,3 +1,5 @@
+// Copyright (c) 2022 Graphcore Ltd. All rights reserved.
+
 #include "VideoClient.hpp"
 #include <PacketSerialisation.h>
 

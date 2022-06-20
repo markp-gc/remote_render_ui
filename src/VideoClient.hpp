@@ -11,6 +11,8 @@
 #include <cinttypes>
 #include <memory>
 
+// Copyright (c) 2022 Graphcore Ltd. All rights reserved.
+
 #include <boost/log/trivial.hpp>
 
 class PacketDemuxer;

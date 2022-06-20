@@ -1,3 +1,5 @@
+// Copyright (c) 2022 Graphcore Ltd. All rights reserved.
+
 #include "RenderClientApp.hpp"
 
 #include <GLFW/glfw3.h>
