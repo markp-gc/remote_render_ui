@@ -113,7 +113,7 @@ int main(int argc, char** argv) {
     BOOST_LOG_TRIVIAL(info) << "Connected to server " << host << ":" << port;
 
     // Packet names must match those compiled on the server:
-    const std::vector<std::string> packetTypes{
+    const std::vector<std::string> packetTypes {
       "stop",           // Tell server to stop rendering and exit (client -> server)
       "detach",         // Detach the remote-ui but continue: server can destroy the
                         // communication interface and continue (client -> server)
