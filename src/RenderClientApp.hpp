@@ -13,6 +13,7 @@ class RenderClientApp : public nanogui::Screen {
 public:
 
   RenderClientApp(const nanogui::Vector2i& size, PacketMuxer& sender, PacketDemuxer& receiver);
+  virtual ~RenderClientApp();
 
   virtual bool keyboard_event(int key, int scancode, int action, int modifiers);
 
@@ -21,6 +22,7 @@ public:
   void set_nif_selection(const ControlsForm::FileLookup& nifFileMapping);
 
 private:
+  PacketMuxer& sender;
   VideoPreviewWindow* preview;
   ControlsForm* form;
 };

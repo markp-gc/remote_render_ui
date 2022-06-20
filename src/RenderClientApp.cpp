@@ -2,18 +2,20 @@
 
 #include "RenderClientApp.hpp"
 
+#include <PacketSerialisation.h>
 #include <GLFW/glfw3.h>
 
 #include <iomanip>
 
-RenderClientApp::RenderClientApp(const nanogui::Vector2i& size, PacketMuxer& sender, PacketDemuxer& receiver)
+RenderClientApp::RenderClientApp(const nanogui::Vector2i& size, PacketMuxer& tx, PacketDemuxer& rx)
 :
   nanogui::Screen(size, "IPU Neural Render Preview", false),
+  sender(tx),
   preview(nullptr),
   form(nullptr)
 {
-  preview = new VideoPreviewWindow(this, "Render Preview", receiver);
-  form = new ControlsForm(this, sender, receiver);
+  preview = new VideoPreviewWindow(this, "Render Preview", rx);
+  form = new ControlsForm(this, tx, rx);
 
   // Have to manually set positions due to bug in ComboBox:
   const int margin = 10;
@@ -22,6 +24,12 @@ RenderClientApp::RenderClientApp(const nanogui::Vector2i& size, PacketMuxer& sen
   pos[0] += margin + preview->width();
   form->set_position(nanogui::Vector2i(pos));
   perform_layout();
+}
+
+RenderClientApp::~RenderClientApp() {
+  // Tell the server we are disconnecting so
+  // it can cleanly tear down its communications:
+  serialise(sender, "detach", true);
 }
 
 bool RenderClientApp::keyboard_event(int key, int scancode, int action, int modifiers) {

@@ -78,8 +78,7 @@ ControlsForm::ControlsForm(nanogui::Screen* screen,
   add_widget("Progress", progress);
 
   add_button("Stop", [screen, &sender]() {
-    bool stop = true;
-    serialise(sender, "stop", stop);
+    serialise(sender, "stop", true);
     screen->set_visible(false);
   })->set_tooltip("Stop the remote application.");
 
