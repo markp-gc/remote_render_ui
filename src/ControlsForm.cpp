@@ -9,6 +9,21 @@
 
 #include <iomanip>
 
+namespace {
+
+// Struct and serialize function to telemetry
+// in a single packet over comms system:
+struct SamplesRates {
+  float pathRate;
+  float rayRate;
+};
+
+template <typename T>
+void serialize(T& ar, SamplesRates& s) { ar(s.pathRate, s.rayRate); }
+
+} // end anonymous namespace
+
+
 ControlsForm::ControlsForm(nanogui::Screen* screen,
                            PacketMuxer& sender, PacketDemuxer& receiver)
   : nanogui::FormHelper(screen)
@@ -100,14 +115,22 @@ ControlsForm::ControlsForm(nanogui::Screen* screen,
   text2->set_editable(false);
   text2->set_units("Mega-paths/sec");
   text2->set_alignment(nanogui::TextBox::Alignment::Right);
-  add_widget("Sample rate:", text2);
+  add_widget("Path-trace rate:", text2);
+  auto text3 = new nanogui::TextBox(window, "-");
+  text3->set_editable(false);
+  text3->set_units("Giga-rays/sec");
+  text3->set_alignment(nanogui::TextBox::Alignment::Right);
+  add_widget("Ray-cast rate:", text3);
 
-  sampleRateSub = receiver.subscribe("sample_rate", [text2](const ComPacket::ConstSharedPacket& packet) {
-    float rate = 0.f;
-    deserialise(packet, rate);
+  sampleRateSub = receiver.subscribe("sample_rate", [text2, text3](const ComPacket::ConstSharedPacket& packet) {
+    SamplesRates rates;
+    deserialise(packet, rates);
     std::stringstream ss;
-    ss << std::fixed << std::setprecision(1) << rate/1e6;
+    ss << std::fixed << std::setprecision(1) << rates.pathRate/1e6;
     text2->set_value(ss.str());
+    ss.str(std::string());
+    ss << std::fixed << std::setprecision(1) << rates.rayRate/1e9;
+    text3->set_value(ss.str());
   });
 }
 
