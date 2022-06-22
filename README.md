@@ -30,9 +30,9 @@ The following are required dependencies:
 # Running
 
 1. Launch the remote application on the remote host. Wait until it logs that it is waiting for connection.
-  1. E.g.: `[12:26:06.674469] [I] [51157] User interface server listening on port 4000`
+  - E.g.: `[12:26:06.674469] [I] [51157] User interface server listening on port 4000`
 
 2. Launch the client (this program) and connect to the same port:
-  1. `./remote-ui --hostname <remote-hostname-or-IP-address> --port 4000 --nif-paths ../nifs.json`
-  2. The JSON file contains a list of paths to NIF models *on the remote*. These will be selectable in the UI.
-  3. Run with `--help` for a full list of options.
+  - E.g.: `./remote-ui --hostname <remote-hostname-or-IP-address> --port 4000 --nif-paths ../nifs.json`
+  - The JSON file contains a list of paths to NIF models *on the remote*. These will be selectable in the UI.
+  - Run with `--help` for a full list of options.
