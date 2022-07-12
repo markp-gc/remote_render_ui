@@ -25,7 +25,7 @@ class PacketDemuxer;
     packets with the same name.
 */
 class VideoClient {
- public:
+public:
   VideoClient(PacketDemuxer& demuxer, const std::string& avPacketName);
   virtual ~VideoClient();
 
@@ -37,12 +37,12 @@ class VideoClient {
 
   double computeVideoBandwidthConsumed();
 
- protected:
+protected:
   bool streamerOk() const;
   bool streamerIoError() const;
   int readPacket(uint8_t* buffer, int size);
 
- private:
+private:
   SimpleQueue m_avInfoPackets;
   SimpleQueue m_avDataPackets;
   int m_packetOffset;

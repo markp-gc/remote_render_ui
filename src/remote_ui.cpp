@@ -8,38 +8,29 @@
 #include <chrono>
 #include <iostream>
 #include <map>
-#include <thread>
 #include <mutex>
+#include <thread>
 
-#include <boost/property_tree/ptree.hpp>
-#include <boost/property_tree/json_parser.hpp>
-#include <boost/program_options.hpp>
 #include <boost/log/core.hpp>
-#include <boost/log/trivial.hpp>
 #include <boost/log/expressions.hpp>
+#include <boost/log/trivial.hpp>
+#include <boost/program_options.hpp>
+#include <boost/property_tree/json_parser.hpp>
+#include <boost/property_tree/ptree.hpp>
 
-#include "VideoPreviewWindow.hpp"
 #include "ControlsForm.hpp"
 #include "RenderClientApp.hpp"
+#include "VideoPreviewWindow.hpp"
 
 boost::program_options::options_description getOptions() {
   namespace po = boost::program_options;
   po::options_description desc("Options");
   desc.add_options()
   ("help", "Show command help.")
-  ("port",
-   po::value<int>()->default_value(3000),
-   "Port number to connect on."
-  )
-  ("host",
-   po::value<std::string>()->default_value("localhost"),
-   "Host to connect to."
-  )
-  ("log-level", po::value<std::string>()->default_value("info"),
-  "Set the log level to one of the following: 'trace', 'debug', 'info', 'warn', 'err', 'critical', 'off'.")
-  ("nif-paths", po::value<std::string>()->default_value(""),
-   "JSON file containing a mapping from menu names to paths to NIF models on the remote. Used to build the NIF selection menu."
-  )
+  ("port", po::value<int>()->default_value(3000), "Port number to connect on.")
+  ("host", po::value<std::string>()->default_value("localhost"), "Host to connect to.")
+  ("log-level", po::value<std::string>()->default_value("info"), "Set the log level to one of the following: 'trace', 'debug', 'info', 'warn', 'err', 'critical', 'off'.")
+  ("nif-paths", po::value<std::string>()->default_value(""), "JSON file containing a mapping from menu names to paths to NIF models on the remote. Used to build the NIF selection menu.")
   ("width,w", po::value<int>()->default_value(1320), "Main window width in pixels.")
   ("height,h", po::value<int>()->default_value(800), "Main window height in pixels.");
   return desc;
@@ -81,7 +72,6 @@ jsonFileToMap(const std::string& file) {
 }
 
 int main(int argc, char** argv) {
-
   auto args = parseOptions(argc, argv, getOptions());
 
   namespace logging = boost::log;
@@ -104,7 +94,7 @@ int main(int argc, char** argv) {
 
     auto host = args.at("host").as<std::string>();
     auto port = args.at("port").as<int>();
-    auto socket    = std::make_unique<TcpSocket>();
+    auto socket = std::make_unique<TcpSocket>();
     bool connected = socket->Connect(host.c_str(), port);
     if (!connected) {
       BOOST_LOG_TRIVIAL(info) << "Could not conect to server " << host << ":" << port;
@@ -113,20 +103,20 @@ int main(int argc, char** argv) {
     BOOST_LOG_TRIVIAL(info) << "Connected to server " << host << ":" << port;
 
     // Packet names must match those compiled on the server:
-    const std::vector<std::string> packetTypes {
-      "stop",           // Tell server to stop rendering and exit (client -> server)
-      "detach",         // Detach the remote-ui but continue: server can destroy the
-                        // communication interface and continue (client -> server)
-      "progress",       // Send render progress (server -> client)
-      "sample_rate",    // Send throughput measurement (server -> client)
-      "env_rotation",   // Update environment light rotation (client -> server)
-      "exposure",       // Update tone-map exposure (client -> server)
-      "gamma",          // Update tone-map gamma (client -> server)
-      "fov",            // Update field-of-view (client -> server)
-      "load_nif",       // Insruct server to load a new
-                        // NIF environemnt light (client -> server)
-      "render_preview", // used to send compressed video packets
-                        // for render preview (server -> client)
+    const std::vector<std::string> packetTypes{
+        "stop",            // Tell server to stop rendering and exit (client -> server)
+        "detach",          // Detach the remote-ui but continue: server can destroy the
+                           // communication interface and continue (client -> server)
+        "progress",        // Send render progress (server -> client)
+        "sample_rate",     // Send throughput measurement (server -> client)
+        "env_rotation",    // Update environment light rotation (client -> server)
+        "exposure",        // Update tone-map exposure (client -> server)
+        "gamma",           // Update tone-map gamma (client -> server)
+        "fov",             // Update field-of-view (client -> server)
+        "load_nif",        // Insruct server to load a new
+                           // NIF environemnt light (client -> server)
+        "render_preview",  // used to send compressed video packets
+                           // for render preview (server -> client)
     };
     auto sender = std::make_unique<PacketMuxer>(*socket, packetTypes);
     auto receiver = std::make_unique<PacketDemuxer>(*socket, packetTypes);

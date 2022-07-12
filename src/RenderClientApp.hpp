@@ -2,16 +2,15 @@
 
 #pragma once
 
-#include <nanogui/nanogui.h>
 #include <PacketComms.h>
+#include <nanogui/nanogui.h>
 
-#include "VideoPreviewWindow.hpp"
 #include "ControlsForm.hpp"
+#include "VideoPreviewWindow.hpp"
 
 /// A screen containing all the application's other windows.
 class RenderClientApp : public nanogui::Screen {
 public:
-
   RenderClientApp(const nanogui::Vector2i& size, PacketMuxer& sender, PacketDemuxer& receiver);
   virtual ~RenderClientApp();
 

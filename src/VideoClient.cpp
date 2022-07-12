@@ -79,7 +79,7 @@ bool VideoClient::receiveVideoFrame(std::function<void(LibAvCapture&)> callback)
 double VideoClient::computeVideoBandwidthConsumed() {
   std::chrono::steady_clock::time_point timeNow = std::chrono::steady_clock::now();
   const auto t2 = std::chrono::steady_clock::now();
-  double seconds = std::chrono::duration_cast<std::chrono::milliseconds>(timeNow - m_lastBandwidthCalcTime).count()/1000.0;
+  double seconds = std::chrono::duration_cast<std::chrono::milliseconds>(timeNow - m_lastBandwidthCalcTime).count() / 1000.0;
   double bits_per_sec = (m_totalVideoBytes - m_lastTotalVideoBytes) * (8.0 / seconds);
   m_lastTotalVideoBytes = m_totalVideoBytes;
   m_lastBandwidthCalcTime = timeNow;
@@ -104,10 +104,10 @@ bool VideoClient::streamerIoError() const {
     the next AV packet (i.e. in consequence of calling m_streamer->GetFrame()).
 */
 int VideoClient::readPacket(uint8_t* buffer, int size) {
-  constexpr std::chrono::milliseconds packetTimeout(1000);
+  using namespace std::chrono_literals;
   SimpleQueue::LockedQueue lockedQueue = m_avDataPackets.lock();
   while (m_avDataPackets.empty() && m_avDataSubscription.getDemuxer().ok()) {
-    lockedQueue.waitNotEmpty(packetTimeout);
+    lockedQueue.waitNotEmpty(1s);
 
     if (m_avDataPackets.empty()) {
       if (avHasTimedOut()) {

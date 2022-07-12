@@ -2,18 +2,16 @@
 
 #include "RenderClientApp.hpp"
 
-#include <PacketSerialisation.h>
 #include <GLFW/glfw3.h>
+#include <PacketSerialisation.h>
 
 #include <iomanip>
 
 RenderClientApp::RenderClientApp(const nanogui::Vector2i& size, PacketMuxer& tx, PacketDemuxer& rx)
-:
-  nanogui::Screen(size, "IPU Neural Render Preview", false),
-  sender(tx),
-  preview(nullptr),
-  form(nullptr)
-{
+    : nanogui::Screen(size, "IPU Neural Render Preview", false),
+      sender(tx),
+      preview(nullptr),
+      form(nullptr) {
   preview = new VideoPreviewWindow(this, "Render Preview", rx);
   form = new ControlsForm(this, tx, rx);
 
@@ -39,8 +37,8 @@ bool RenderClientApp::keyboard_event(int key, int scancode, int action, int modi
 
   if (action == GLFW_PRESS) {
     if (key == GLFW_KEY_R) {
-        preview->reset();
-        return true;
+      preview->reset();
+      return true;
     }
     if (key == GLFW_KEY_ESCAPE) {
       set_visible(false);
@@ -56,7 +54,7 @@ void RenderClientApp::draw(NVGcontext* ctx) {
     // Update bandwidth before display:
     std::stringstream ss;
     ss << std::fixed << std::setprecision(2)
-      << preview->getVideoBandwidthMbps();
+       << preview->getVideoBandwidthMbps();
     form->bitRateText->set_value(ss.str());
   }
   Screen::draw(ctx);

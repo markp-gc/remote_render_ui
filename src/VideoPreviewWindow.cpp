@@ -7,14 +7,15 @@
 #include <boost/log/trivial.hpp>
 
 VideoPreviewWindow::VideoPreviewWindow(
-  nanogui::Screen* screen, const std::string& title, PacketDemuxer& receiver)
-  : nanogui::Window(screen, title),
-    videoClient(std::make_unique<VideoClient>(receiver, "render_preview")),
-    texture(nullptr),
-    mbps(0.0),
-    newFrameDecoded(false),
-    runDecoderThread(true)
-{
+    nanogui::Screen* screen,
+    const std::string& title,
+    PacketDemuxer& receiver)
+    : nanogui::Window(screen, title),
+      videoClient(std::make_unique<VideoClient>(receiver, "render_preview")),
+      texture(nullptr),
+      mbps(0.0),
+      newFrameDecoded(false),
+      runDecoderThread(true) {
   using namespace nanogui;
   using namespace std::chrono_literals;
   bool videoOk = videoClient->initialiseVideoStream(2s);
@@ -28,15 +29,15 @@ VideoPreviewWindow::VideoPreviewWindow(
     // one with the preferred format and we need to know how to allcoate
     // the buffers:
     texture = new Texture(
-      Texture::PixelFormat::RGB,
-      Texture::ComponentFormat::UInt8,
-      Vector2i(w, h),
-      Texture::InterpolationMode::Trilinear,
-      Texture::InterpolationMode::Nearest);
+        Texture::PixelFormat::RGB,
+        Texture::ComponentFormat::UInt8,
+        Vector2i(w, h),
+        Texture::InterpolationMode::Trilinear,
+        Texture::InterpolationMode::Nearest);
     const auto ch = texture->channels();
     BOOST_LOG_TRIVIAL(trace) << "Created texture with "
-                              << texture->channels() << " channels, "
-                              << "data ptr: " << (void*)bgrBuffer.data();
+                             << texture->channels() << " channels, "
+                             << "data ptr: " << (void*)bgrBuffer.data();
     if (!(ch == 3 || ch == 4)) {
       throw std::logic_error("Texture returned has an unsupported number of texture channels.");
     }
@@ -61,17 +62,16 @@ VideoPreviewWindow::VideoPreviewWindow(
     imageView->set_image(texture);
     imageView->center();
     imageView->set_pixel_callback(
-      [this](const Vector2i& pos, char **out, size_t size) {
-        // The information provided by this callback is used to
-        // display pixel values at high magnification:
-        auto w = videoClient->getFrameWidth();
-        std::size_t index = (pos.x() + w * pos.y()) * texture->channels();
-        for (int c = 0; c < texture->channels(); ++c) {
-          uint8_t value = bgrBuffer[index + c];
-          snprintf(out[c], size, "%i", (int)value);
-        }
-      }
-    );
+        [this](const Vector2i& pos, char** out, size_t size) {
+          // The information provided by this callback is used to
+          // display pixel values at high magnification:
+          auto w = videoClient->getFrameWidth();
+          std::size_t index = (pos.x() + w * pos.y()) * texture->channels();
+          for (int c = 0; c < texture->channels(); ++c) {
+            uint8_t value = bgrBuffer[index + c];
+            snprintf(out[c], size, "%i", (int)value);
+          }
+        });
 
     BOOST_LOG_TRIVIAL(info) << "Succesfully initialised video stream.";
     startDecodeThread();
@@ -94,7 +94,9 @@ void VideoPreviewWindow::startDecodeThread() {
       throw std::logic_error("No VideoClient object available.");
     }
 
-    while(runDecoderThread) { decodeVideoFrame(); }
+    while (runDecoderThread) {
+      decodeVideoFrame();
+    }
   }));
 }
 
@@ -114,26 +116,26 @@ void VideoPreviewWindow::stopDecodeThread() {
 /// Decode a video frame into the buffer.
 void VideoPreviewWindow::decodeVideoFrame() {
   newFrameDecoded = videoClient->receiveVideoFrame(
-    [this](LibAvCapture& stream) {
-      BOOST_LOG_TRIVIAL(debug) << "Decoded video frame";
-      auto w = stream.GetFrameWidth();
-      auto h = stream.GetFrameHeight();
-      if (texture != nullptr) {
-        // Extract decoded data to the buffer:
-        std::lock_guard<std::mutex> lock(bufferMutex);
-        if (texture->channels() == 3) {
-          stream.ExtractRgbImage(bgrBuffer.data(), w * texture->channels());
-        } else if (texture->channels() == 4) {
-          stream.ExtractRgbaImage(bgrBuffer.data(), w * texture->channels());
-        } else {
-          throw std::runtime_error("Unsupported number of texture channels");
+      [this](LibAvCapture& stream) {
+        BOOST_LOG_TRIVIAL(debug) << "Decoded video frame";
+        auto w = stream.GetFrameWidth();
+        auto h = stream.GetFrameHeight();
+        if (texture != nullptr) {
+          // Extract decoded data to the buffer:
+          std::lock_guard<std::mutex> lock(bufferMutex);
+          if (texture->channels() == 3) {
+            stream.ExtractRgbImage(bgrBuffer.data(), w * texture->channels());
+          } else if (texture->channels() == 4) {
+            stream.ExtractRgbaImage(bgrBuffer.data(), w * texture->channels());
+          } else {
+            throw std::runtime_error("Unsupported number of texture channels");
+          }
         }
-      }
-  });
+      });
 
   if (newFrameDecoded) {
     double bps = videoClient->computeVideoBandwidthConsumed();
-    mbps = bps/(1024.0*1024.0);
+    mbps = bps / (1024.0 * 1024.0);
     BOOST_LOG_TRIVIAL(debug) << "Video bit-rate: " << mbps << " Mbps" << std::endl;
   }
 }

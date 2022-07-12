@@ -2,8 +2,8 @@
 
 #pragma once
 
-#include <nanogui/nanogui.h>
 #include <PacketComms.h>
+#include <nanogui/nanogui.h>
 
 #include <map>
 
@@ -12,7 +12,6 @@
 /// user interface.
 class ControlsForm : public nanogui::FormHelper {
 public:
-
   using FileLookup = std::map<std::string, std::string>;
 
   ControlsForm(nanogui::Screen* screen, PacketMuxer& sender, PacketDemuxer& receiver);

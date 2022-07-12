@@ -19,15 +19,16 @@ struct SamplesRates {
 };
 
 template <typename T>
-void serialize(T& ar, SamplesRates& s) { ar(s.pathRate, s.rayRate); }
+void serialize(T& ar, SamplesRates& s) {
+  ar(s.pathRate, s.rayRate);
+}
 
-} // end anonymous namespace
-
+}  // end anonymous namespace
 
 ControlsForm::ControlsForm(nanogui::Screen* screen,
-                           PacketMuxer& sender, PacketDemuxer& receiver)
-  : nanogui::FormHelper(screen)
-{
+                           PacketMuxer& sender,
+                           PacketDemuxer& receiver)
+    : nanogui::FormHelper(screen) {
   window = add_window(nanogui::Vector2i(10, 10), "Control");
 
   // Scene controls
@@ -126,10 +127,10 @@ ControlsForm::ControlsForm(nanogui::Screen* screen,
     SamplesRates rates;
     deserialise(packet, rates);
     std::stringstream ss;
-    ss << std::fixed << std::setprecision(1) << rates.pathRate/1e6;
+    ss << std::fixed << std::setprecision(1) << rates.pathRate / 1e6;
     text2->set_value(ss.str());
     ss.str(std::string());
-    ss << std::fixed << std::setprecision(1) << rates.rayRate/1e9;
+    ss << std::fixed << std::setprecision(1) << rates.rayRate / 1e9;
     text3->set_value(ss.str());
   });
 }
