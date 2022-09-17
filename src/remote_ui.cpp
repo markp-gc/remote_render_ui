@@ -21,6 +21,7 @@
 #include "ControlsForm.hpp"
 #include "RenderClientApp.hpp"
 #include "VideoPreviewWindow.hpp"
+#include "PacketDescriptions.hpp"
 
 boost::program_options::options_description getOptions() {
   namespace po = boost::program_options;
@@ -102,24 +103,8 @@ int main(int argc, char** argv) {
     }
     BOOST_LOG_TRIVIAL(info) << "Connected to server " << host << ":" << port;
 
-    // Packet names must match those compiled on the server:
-    const std::vector<std::string> packetTypes{
-        "stop",            // Tell server to stop rendering and exit (client -> server)
-        "detach",          // Detach the remote-ui but continue: server can destroy the
-                           // communication interface and continue (client -> server)
-        "progress",        // Send render progress (server -> client)
-        "sample_rate",     // Send throughput measurement (server -> client)
-        "env_rotation",    // Update environment light rotation (client -> server)
-        "exposure",        // Update tone-map exposure (client -> server)
-        "gamma",           // Update tone-map gamma (client -> server)
-        "fov",             // Update field-of-view (client -> server)
-        "load_nif",        // Insruct server to load a new
-                           // NIF environemnt light (client -> server)
-        "render_preview",  // used to send compressed video packets
-                           // for render preview (server -> client)
-    };
-    auto sender = std::make_unique<PacketMuxer>(*socket, packetTypes);
-    auto receiver = std::make_unique<PacketDemuxer>(*socket, packetTypes);
+    auto sender = std::make_unique<PacketMuxer>(*socket, packets::packetTypes);
+    auto receiver = std::make_unique<PacketDemuxer>(*socket, packets::packetTypes);
 
     nanogui::init();
 

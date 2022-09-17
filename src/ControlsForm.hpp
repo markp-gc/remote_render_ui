@@ -7,6 +7,8 @@
 
 #include <map>
 
+#include "PacketDescriptions.hpp"
+
 /// This control window sends and receives messages via a
 /// PacketMuxer and PacketDemuxer to enact a remote-controlled
 /// user interface.
@@ -26,6 +28,9 @@ private:
   FileLookup fileMapping;
   nanogui::Window* window;
   nanogui::ComboBox* nifChooser;
-  PacketSubscription progressSub;
-  PacketSubscription sampleRateSub;
+  std::map<std::string, PacketSubscription> subs;
+
+  // Receive raw image:
+  packets::HdrHeader hdrHeader;
+  std::vector<float> hdrBuffer;
 };

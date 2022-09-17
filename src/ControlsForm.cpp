@@ -8,27 +8,14 @@
 #include <boost/log/trivial.hpp>
 
 #include <iomanip>
-
-namespace {
-
-// Struct and serialize function to telemetry
-// in a single packet over comms system:
-struct SamplesRates {
-  float pathRate;
-  float rayRate;
-};
-
-template <typename T>
-void serialize(T& ar, SamplesRates& s) {
-  ar(s.pathRate, s.rayRate);
-}
-
-}  // end anonymous namespace
+#include <fstream>
 
 ControlsForm::ControlsForm(nanogui::Screen* screen,
                            PacketMuxer& sender,
                            PacketDemuxer& receiver)
-    : nanogui::FormHelper(screen) {
+    : nanogui::FormHelper(screen),
+      hdrHeader(packets::HdrHeader{0,0,0})
+{
   window = add_window(nanogui::Vector2i(10, 10), "Control");
 
   // Scene controls
@@ -100,10 +87,42 @@ ControlsForm::ControlsForm(nanogui::Screen* screen,
 
   // Make a subscriber to receive progress updates:
   // (the progress pointer needs to be captured by value).
-  progressSub = receiver.subscribe("progress", [progress](const ComPacket::ConstSharedPacket& packet) {
+  subs["progress"] = receiver.subscribe("progress", [progress](const ComPacket::ConstSharedPacket& packet) {
     float progressValue = 0.f;
     deserialise(packet, progressValue);
     progress->set_value(progressValue);
+  });
+
+  subs["hdr_header"] = receiver.subscribe("hdr_header", [&](const ComPacket::ConstSharedPacket& packet) {
+    deserialise(packet, hdrHeader);
+    hdrBuffer.resize(hdrHeader.width * hdrHeader.height * 3);
+    BOOST_LOG_TRIVIAL(debug) << "Large transfer initiated: "
+                             << hdrHeader.width << "x" << hdrHeader.height << " in " << hdrHeader.packets << " chunks.";
+  });
+
+  subs["hdr_packet"] = receiver.subscribe("hdr_packet", [&](const ComPacket::ConstSharedPacket& packet) {
+    packets::HdrPacket p;
+    deserialise(packet, p);
+    BOOST_LOG_TRIVIAL(trace) << "Received large transfer packet number: "
+                             << p.id << " size: " << p.data.size();
+    if (hdrHeader.packets > 0) {
+      // Copy data into buffer:
+      auto offset = p.id * p.data.size();
+      std::copy(p.data.begin(), p.data.end(), hdrBuffer.data() + offset);
+      if (p.id == hdrHeader.packets - 1) {
+        hdrHeader.packets = 0;
+        // Last packet so write a PFM file:
+        std::ofstream f("image.pfm", std::ios::binary);
+        f << "PF\n";
+        f << std::to_string(hdrHeader.width) << " ";
+        f << std::to_string(hdrHeader.height) << "\n";
+        f << "-1.0\n";
+        for (auto r = hdrHeader.height - 1; r >= 0; --r) {
+          auto rowStart = reinterpret_cast<char*>(hdrBuffer.data() + (r * hdrHeader.width * 3));
+          f.write(rowStart, hdrHeader.width * 3 * sizeof(float));
+        }
+      }
+    }
   });
 
   add_group("Info/Stats");
@@ -123,8 +142,8 @@ ControlsForm::ControlsForm(nanogui::Screen* screen,
   text3->set_alignment(nanogui::TextBox::Alignment::Right);
   add_widget("Ray-cast rate:", text3);
 
-  sampleRateSub = receiver.subscribe("sample_rate", [text2, text3](const ComPacket::ConstSharedPacket& packet) {
-    SamplesRates rates;
+  subs["sample_rate"] = receiver.subscribe("sample_rate", [text2, text3](const ComPacket::ConstSharedPacket& packet) {
+    packets::SampleRates rates;
     deserialise(packet, rates);
     std::stringstream ss;
     ss << std::fixed << std::setprecision(1) << rates.pathRate / 1e6;
