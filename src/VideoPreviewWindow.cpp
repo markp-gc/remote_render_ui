@@ -15,7 +15,8 @@ VideoPreviewWindow::VideoPreviewWindow(
       texture(nullptr),
       mbps(0.0),
       newFrameDecoded(false),
-      runDecoderThread(true) {
+      runDecoderThread(true),
+      showRawPixelValues(false) {
   using namespace nanogui;
   using namespace std::chrono_literals;
   bool videoOk = videoClient->initialiseVideoStream(5s);
@@ -66,19 +67,19 @@ VideoPreviewWindow::VideoPreviewWindow(
           // The information provided by this callback is used to
           // display pixel values at high magnification:
           auto w = videoClient->getFrameWidth();
-          if (rawBuffer.empty()) {
-            std::size_t index = (pos.x() + w * pos.y()) * texture->channels();
-            for (int c = 0; c < texture->channels(); ++c) {
-              uint8_t value = bgrBuffer[index + c];
-              snprintf(out[c], size, "%i", (int)value);
-            }
-          } else {
+          if (showRawPixelValues && !rawBuffer.empty()) {
             // If we have the raw HDR data available then use that
             // for the pixel labels instead:
             std::size_t index = (pos.x() + w * pos.y()) * 3;
             for (int c = 0; c < 3; ++c) {
               float value = rawBuffer[index + c];
-              snprintf(out[c], size, "%f", value);
+              snprintf(out[c], size, "%.2f", value);
+            }
+          } else {
+            std::size_t index = (pos.x() + w * pos.y()) * texture->channels();
+            for (int c = 0; c < texture->channels(); ++c) {
+              uint8_t value = bgrBuffer[index + c];
+              snprintf(out[c], size, "%i", (int)value);
             }
           }
         });

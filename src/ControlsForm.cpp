@@ -77,6 +77,15 @@ ControlsForm::ControlsForm(nanogui::Screen* screen,
   gammaSlider->callback()(gammaSlider->value());
   add_widget("Gamma", gammaSlider);
 
+  auto* toggleButton = new nanogui::CheckBox(window);
+  toggleButton->set_caption("Show raw HDR values on zoom.");
+  toggleButton->set_callback([videoPreview](bool checked) {
+    if (videoPreview) {
+      videoPreview->displayRawValues(checked);
+    }
+  });
+  add_widget("Pixel Values", toggleButton);
+
   // Info/stats/status:
   add_group("Render Status");
   auto progress = new nanogui::ProgressBar(window);

@@ -27,6 +27,10 @@ public:
     rawBuffer = buffer;
   }
 
+  void displayRawValues(bool displayRaw) {
+    showRawPixelValues = displayRaw;
+  }
+
 protected:
   void startDecodeThread();
 
@@ -47,4 +51,5 @@ private:
   std::mutex bufferMutex;
   std::atomic<bool> newFrameDecoded;
   std::atomic<bool> runDecoderThread;
+  bool showRawPixelValues;
 };
