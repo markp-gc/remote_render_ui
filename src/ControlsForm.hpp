@@ -8,6 +8,7 @@
 #include <map>
 
 #include "PacketDescriptions.hpp"
+#include "VideoPreviewWindow.hpp"
 
 /// This control window sends and receives messages via a
 /// PacketMuxer and PacketDemuxer to enact a remote-controlled
@@ -16,7 +17,7 @@ class ControlsForm : public nanogui::FormHelper {
 public:
   using FileLookup = std::map<std::string, std::string>;
 
-  ControlsForm(nanogui::Screen* screen, PacketMuxer& sender, PacketDemuxer& receiver);
+  ControlsForm(nanogui::Screen* screen, PacketMuxer& sender, PacketDemuxer& receiver, VideoPreviewWindow* videoPreview);
 
   void set_position(const nanogui::Vector2i& pos);
 
@@ -31,6 +32,7 @@ private:
   std::map<std::string, PacketSubscription> subs;
 
   // Receive raw image:
+  VideoPreviewWindow* preview;
   packets::HdrHeader hdrHeader;
   std::vector<float> hdrBuffer;
 };

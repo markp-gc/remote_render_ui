@@ -12,9 +12,11 @@
 
 ControlsForm::ControlsForm(nanogui::Screen* screen,
                            PacketMuxer& sender,
-                           PacketDemuxer& receiver)
+                           PacketDemuxer& receiver,
+                           VideoPreviewWindow* videoPreview)
     : nanogui::FormHelper(screen),
-      hdrHeader(packets::HdrHeader{0,0,0})
+      hdrHeader(packets::HdrHeader{0,0,0}),
+      preview(videoPreview)
 {
   window = add_window(nanogui::Vector2i(10, 10), "Control");
 
@@ -121,6 +123,7 @@ ControlsForm::ControlsForm(nanogui::Screen* screen,
           auto rowStart = reinterpret_cast<char*>(hdrBuffer.data() + (r * hdrHeader.width * 3));
           f.write(rowStart, hdrHeader.width * 3 * sizeof(float));
         }
+        preview->setRawBufferData(hdrBuffer);
       }
     }
   });

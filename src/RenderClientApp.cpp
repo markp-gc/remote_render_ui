@@ -13,7 +13,7 @@ RenderClientApp::RenderClientApp(const nanogui::Vector2i& size, PacketMuxer& tx,
       preview(nullptr),
       form(nullptr) {
   preview = new VideoPreviewWindow(this, "Render Preview", rx);
-  form = new ControlsForm(this, tx, rx);
+  form = new ControlsForm(this, tx, rx, preview);
 
   // Have to manually set positions due to bug in ComboBox:
   const int margin = 10;

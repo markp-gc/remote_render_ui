@@ -23,6 +23,10 @@ public:
 
   void reset() { imageView->reset(); }
 
+  void setRawBufferData(std::vector<float>& buffer) {
+    rawBuffer = buffer;
+  }
+
 protected:
   void startDecodeThread();
 
@@ -34,6 +38,7 @@ protected:
 private:
   std::unique_ptr<VideoClient> videoClient;
   std::vector<std::uint8_t> bgrBuffer;
+  std::vector<float> rawBuffer;
   nanogui::Texture* texture;
   nanogui::ImageView* imageView;
   double mbps;
