@@ -6,6 +6,7 @@
 #include <nanogui/nanogui.h>
 
 #include <map>
+#include <mutex>
 
 #include "PacketDescriptions.hpp"
 #include "VideoPreviewWindow.hpp"
@@ -29,10 +30,13 @@ private:
   FileLookup fileMapping;
   nanogui::Window* window;
   nanogui::ComboBox* nifChooser;
+  nanogui::Button* saveButton;
   std::map<std::string, PacketSubscription> subs;
 
   // Receive raw image:
   VideoPreviewWindow* preview;
   packets::HdrHeader hdrHeader;
   std::vector<float> hdrBuffer;
+  std::mutex hdrBufferMutex;
+  void savePfm(const std::string& filename);
 };

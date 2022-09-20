@@ -10,12 +10,19 @@
 #include <iomanip>
 #include <fstream>
 
+namespace {
+std::string hdrDelayNote = "Note that the HDR values are updated infrequently"
+                            " so can be many seconds out of date.";
+}
+
 ControlsForm::ControlsForm(nanogui::Screen* screen,
                            PacketMuxer& sender,
                            PacketDemuxer& receiver,
                            VideoPreviewWindow* videoPreview)
     : nanogui::FormHelper(screen),
       hdrHeader(packets::HdrHeader{0,0,0}),
+      nifChooser(nullptr),
+      saveButton(nullptr),
       preview(videoPreview)
 {
   window = add_window(nanogui::Vector2i(10, 10), "Control");
@@ -84,6 +91,8 @@ ControlsForm::ControlsForm(nanogui::Screen* screen,
       videoPreview->displayRawValues(checked);
     }
   });
+  toggleButton->set_tooltip("If checked and raw iamge data has been received from the server then HDR"
+                            " values will be displayed on zoom. " + hdrDelayNote);
   add_widget("Pixel Values", toggleButton);
 
   // Info/stats/status:
@@ -109,6 +118,8 @@ ControlsForm::ControlsForm(nanogui::Screen* screen,
     hdrBuffer.resize(hdrHeader.width * hdrHeader.height * 3);
     BOOST_LOG_TRIVIAL(debug) << "Large transfer initiated: "
                              << hdrHeader.width << "x" << hdrHeader.height << " in " << hdrHeader.packets << " chunks.";
+    // Need to be sure the buffer is not accessed while it is incrementally updated:
+    hdrBufferMutex.lock();
   });
 
   subs["hdr_packet"] = receiver.subscribe("hdr_packet", [&](const ComPacket::ConstSharedPacket& packet) {
@@ -121,18 +132,11 @@ ControlsForm::ControlsForm(nanogui::Screen* screen,
       auto offset = p.id * p.data.size();
       std::copy(p.data.begin(), p.data.end(), hdrBuffer.data() + offset);
       if (p.id == hdrHeader.packets - 1) {
+        // Final packet for current image has now been received:
         hdrHeader.packets = 0;
-        // Last packet so write a PFM file:
-        std::ofstream f("image.pfm", std::ios::binary);
-        f << "PF\n";
-        f << std::to_string(hdrHeader.width) << " ";
-        f << std::to_string(hdrHeader.height) << "\n";
-        f << "-1.0\n";
-        for (auto r = hdrHeader.height - 1; r >= 0; --r) {
-          auto rowStart = reinterpret_cast<char*>(hdrBuffer.data() + (r * hdrHeader.width * 3));
-          f.write(rowStart, hdrHeader.width * 3 * sizeof(float));
-        }
         preview->setRawBufferData(hdrBuffer);
+        hdrBufferMutex.unlock();
+        saveButton->set_enabled(true);
       }
     }
   });
@@ -164,6 +168,13 @@ ControlsForm::ControlsForm(nanogui::Screen* screen,
     ss << std::fixed << std::setprecision(1) << rates.rayRate / 1e9;
     text3->set_value(ss.str());
   });
+
+  add_group("File Manager");
+  saveButton = add_button("Save PFM", [&]() {
+    savePfm("image.pfm");
+  });
+  saveButton->set_tooltip("Save raw HDR image as a portable float map (PFM). " + hdrDelayNote);
+  saveButton->set_enabled(false);
 }
 
 void ControlsForm::set_position(const nanogui::Vector2i& pos) {
@@ -182,5 +193,23 @@ void ControlsForm::set_nif_selection(const FileLookup& nifFileMapping) {
   if (nifChooser->items().size() > 0) {
     nifChooser->set_selected_index(0);
     nifChooser->callback()(0);
+  }
+}
+
+void ControlsForm::savePfm(const std::string& fileName) {
+  if (!hdrBuffer.empty()) {
+    // Do not want to save a partially received image:
+    std::lock_guard<std::mutex> lock(hdrBufferMutex);
+
+    // Last packet so write a PFM file:
+    std::ofstream f(fileName, std::ios::binary);
+    f << "PF\n";
+    f << std::to_string(hdrHeader.width) << " ";
+    f << std::to_string(hdrHeader.height) << "\n";
+    f << "-1.0\n";
+    for (auto r = hdrHeader.height - 1; r >= 0; --r) {
+      auto rowStart = reinterpret_cast<char*>(hdrBuffer.data() + (r * hdrHeader.width * 3));
+      f.write(rowStart, hdrHeader.width * 3 * sizeof(float));
+    }
   }
 }
