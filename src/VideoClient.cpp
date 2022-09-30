@@ -105,11 +105,21 @@ bool VideoClient::streamerIoError() const {
 */
 int VideoClient::readPacket(uint8_t* buffer, int size) {
   using namespace std::chrono_literals;
+  const auto retries = 4u;
   SimpleQueue::LockedQueue lockedQueue = m_avDataPackets.lock();
   while (m_avDataPackets.empty() && m_avDataSubscription.getDemuxer().ok()) {
     lockedQueue.waitNotEmpty(1s);
 
     if (m_avDataPackets.empty()) {
+      for (auto retry = 0u; retry < retries; retry++) {
+        BOOST_LOG_TRIVIAL(warning) << "VideoClient timed out waiting for an AV packet. Retry " << (retry+1) << "/" << retries << std::endl;
+        lockedQueue.waitNotEmpty(2s); // wait a bit longer before giving up...
+        if (!m_avDataPackets.empty()) {
+          BOOST_LOG_TRIVIAL(info) << "Retry " << retry + 1 << " successful." << std::endl;
+          break;
+        }
+      }
+
       if (avHasTimedOut()) {
         BOOST_LOG_TRIVIAL(error) << "VideoClient timed out waiting for an AV packet." << std::endl;
         return -1;
