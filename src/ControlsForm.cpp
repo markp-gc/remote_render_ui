@@ -147,11 +147,19 @@ ControlsForm::ControlsForm(nanogui::Screen* screen,
   bitRateText->set_units("Mbps");
   bitRateText->set_alignment(nanogui::TextBox::Alignment::Right);
   add_widget("Video rate:", bitRateText);
+
+  frameRateText = new nanogui::TextBox(window, "-");
+  frameRateText->set_editable(false);
+  frameRateText->set_units("Frames/sec");
+  frameRateText->set_alignment(nanogui::TextBox::Alignment::Right);
+  add_widget("Frame rate:", frameRateText);
+
   auto text2 = new nanogui::TextBox(window, "-");
   text2->set_editable(false);
   text2->set_units("Mega-paths/sec");
   text2->set_alignment(nanogui::TextBox::Alignment::Right);
   add_widget("Path-trace rate:", text2);
+
   auto text3 = new nanogui::TextBox(window, "-");
   text3->set_editable(false);
   text3->set_units("Giga-rays/sec");

@@ -25,6 +25,7 @@ public:
   void set_nif_selection(const FileLookup& nifFileMapping);
 
   nanogui::TextBox* bitRateText;
+  nanogui::TextBox* frameRateText;
 
 private:
   FileLookup fileMapping;

@@ -1,16 +1,14 @@
 {
-  "Borghese Gardens": "\/hdris\/nifs\/borghese_4k_fp16_yuv\/assets.extra",
-  "Castel St. Angelo Roof": "\/hdris\/nifs\/castel_st_angelo_roof_4k_fp16_yuv\/assets.extra",
-  "Country Club": "\/hdris\/nifs\/country_club_4k_fp16_yuv\/assets.extra",
-  "Dikhololo Night": "\/hdris\/nifs\/dikhololo_night_4k_fp16_yuv\/assets.extra",
-  "Green Sanctuary": "\/hdris\/nifs\/green_sanctuary_4k_fp16_yuv\/assets.extra",
-  "Monbachtal Riverbank": "\/hdris\/nifs\/monbachtal_riverbank_4k_fp16_yuv\/assets.extra",
-  "Pretville Cinema": "\/hdris\/nifs\/pretville_cinema_4k_fp16_yuv\/assets.extra",
-  "Quattro Canti": "\/hdris\/nifs\/quattro_canti_4k_fp16_yuv\/assets.extra",
-  "Sandsloot": "\/hdris\/nifs\/sandsloot_4k_fp16_yuv\/assets.extra",
-  "Shanghai Bund": "\/hdris\/nifs\/shanghai_bund_4k_fp16_yuv\/assets.extra",
-  "Snow Field": "\/hdris\/nifs\/snow_field_4k_fp16_yuv\/assets.extra",
-  "Studio Small": "\/hdris\/nifs\/studio_small_09_4k_fp16_yuv\/assets.extra",
-  "Sunset JHB Central": "\/hdris\/nifs\/sunset_jhbcentral_4k_fp16_yuv\/assets.extra",
-  "Urban Alley": "\/hdris\/nifs\/urban_alley_01_4k_fp16_yuv\/assets.extra"
+  "Borghese Gardens": "\/home\/markp\/data\/nifs\/borghese_4k_fp16_yuv/assets.extra",
+  "Country Club": "\/home\/markp\/data\/nifs\/country_club_4k_fp16_yuv\/assets.extra",
+  "Dikhololo Night": "\/home\/markp\/data\/nifs\/dikhololo_night_4k_fp16_yuv\/assets.extra",
+  "Green Sanctuary": "\/home\/markp\/data\/nifs\/green_sanctuary_4k_fp16_yuv\/assets.extra",
+  "Monbachtal Riverbank": "\/home\/markp\/data\/nifs\/monbachtal_riverbank_4k_fp16_yuv\/assets.extra",
+  "Pretville Cinema": "\/home\/markp\/data\/nifs\/pretville_cinema_4k_fp16_yuv\/assets.extra",
+  "Quattro Canti": "\/home\/markp\/data\/nifs\/quattro_canti_4k_fp16_yuv\/assets.extra",
+  "Sandsloot": "\/home\/markp\/data\/nifs\/sandsloot_4k_fp16_yuv\/assets.extra",
+  "Shanghai Bund": "\/home\/markp\/data\/nifs\/shanghai_bund_4k_fp16_yuv\/assets.extra",
+  "Studio Small": "\/home\/markp\/data\/nifs\/studio_small_09_4k_fp16_yuv\/assets.extra",
+  "Sunset JHB Central": "\/home\/markp\/data\/nifs\/sunset_jhbcentral_4k_fp16_yuv\/assets.extra",
+  "Urban Alley": "\/home\/markp\/data\/nifs\/urban_alley_01_4k_fp16_yuv\/assets.extra"
 }

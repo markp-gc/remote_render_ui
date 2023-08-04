@@ -51,11 +51,16 @@ bool RenderClientApp::keyboard_event(int key, int scancode, int action, int modi
 
 void RenderClientApp::draw(NVGcontext* ctx) {
   if (preview != nullptr && form != nullptr) {
-    // Update bandwidth before display:
+    // Update bandwidth text before display:
     std::stringstream ss;
     ss << std::fixed << std::setprecision(2)
        << preview->getVideoBandwidthMbps();
     form->bitRateText->set_value(ss.str());
+    // Update frame rate text:
+    ss.str(std::string());
+    ss << std::fixed << std::setprecision(2)
+       << preview->getFrameRate();
+    form->frameRateText->set_value(ss.str());
   }
   Screen::draw(ctx);
 }

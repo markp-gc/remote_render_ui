@@ -20,6 +20,7 @@ public:
   virtual void draw(NVGcontext* ctx);
 
   double getVideoBandwidthMbps() { return mbps; }
+  double getFrameRate() { return fps; }
 
   void reset() { imageView->reset(); }
 
@@ -46,6 +47,8 @@ private:
   nanogui::Texture* texture;
   nanogui::ImageView* imageView;
   double mbps;
+  std::chrono::steady_clock::time_point m_lastFrameTime;
+  double fps;
 
   std::unique_ptr<std::thread> videoDecodeThread;
   std::mutex bufferMutex;

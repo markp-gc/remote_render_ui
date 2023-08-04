@@ -78,7 +78,6 @@ bool VideoClient::receiveVideoFrame(std::function<void(LibAvCapture&)> callback)
 */
 double VideoClient::computeVideoBandwidthConsumed() {
   std::chrono::steady_clock::time_point timeNow = std::chrono::steady_clock::now();
-  const auto t2 = std::chrono::steady_clock::now();
   double seconds = std::chrono::duration_cast<std::chrono::milliseconds>(timeNow - m_lastBandwidthCalcTime).count() / 1000.0;
   double bits_per_sec = (m_totalVideoBytes - m_lastTotalVideoBytes) * (8.0 / seconds);
   m_lastTotalVideoBytes = m_totalVideoBytes;

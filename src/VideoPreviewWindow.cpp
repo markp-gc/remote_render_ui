@@ -14,6 +14,8 @@ VideoPreviewWindow::VideoPreviewWindow(
       videoClient(std::make_unique<VideoClient>(receiver, "render_preview")),
       texture(nullptr),
       mbps(0.0),
+      m_lastFrameTime(std::chrono::steady_clock::now()),
+      fps(std::numeric_limits<double>::infinity()),
       newFrameDecoded(false),
       runDecoderThread(true),
       showRawPixelValues(false) {
@@ -148,6 +150,12 @@ void VideoPreviewWindow::decodeVideoFrame() {
     double bps = videoClient->computeVideoBandwidthConsumed();
     mbps = bps / (1024.0 * 1024.0);
     BOOST_LOG_TRIVIAL(debug) << "Video bit-rate: " << mbps << " Mbps" << std::endl;
+
+    // Calculate instantaneous frame rate:
+    auto newFrameTime = std::chrono::steady_clock::now();
+    fps = 1000.0 / std::chrono::duration_cast<std::chrono::milliseconds>(newFrameTime - m_lastFrameTime).count();
+    m_lastFrameTime = newFrameTime;
+    BOOST_LOG_TRIVIAL(debug) << "Frame rate: " << fps << " Fps" << std::endl;
   }
 }
 
