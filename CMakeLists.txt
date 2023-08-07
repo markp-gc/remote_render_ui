@@ -28,7 +28,7 @@ add_subdirectory(external/videolib)
 include_directories(${NANOGUI_EXTRA_INCS} ${PACKETCOMMS_INCLUDES} ${VIDEOLIB_INCLUDES})
 
 # Build the interface app:
-file(GLOB SRC ${PROJECT_SOURCE_DIR}/src/*.hpp ${PROJECT_SOURCE_DIR}/src/*.cpp)
+file(GLOB_RECURSE SRC ${PROJECT_SOURCE_DIR}/src/*.hpp ${PROJECT_SOURCE_DIR}/src/*.cpp)
 add_executable(remote-ui ${SRC})
 target_link_libraries(
   remote-ui

@@ -1,6 +1,7 @@
 // Copyright (c) 2022 Graphcore Ltd. All rights reserved.
 
 #include "ControlsForm.hpp"
+#include "custom_widgets/rotator.hpp"
 
 #include <PacketSerialisation.h>
 #include <cereal/types/string.hpp>
@@ -13,6 +14,13 @@
 namespace {
 std::string hdrDelayNote = "Note that the HDR values are updated infrequently"
                             " so can be many seconds out of date.";
+}
+
+std::uint32_t convertSampleValue(float value) {
+  // Maximum of 16 otherwise latency will be too high:
+  std::uint32_t sampleCount = value * 16;
+  // Must be at least 1:
+  return std::max(sampleCount, 1u);
 }
 
 ControlsForm::ControlsForm(nanogui::Screen* screen,
@@ -29,15 +37,12 @@ ControlsForm::ControlsForm(nanogui::Screen* screen,
 
   // Scene controls
   add_group("Scene Parameters");
-
-  auto* rotSlider = new nanogui::Slider(window);
-  rotSlider->set_fixed_width(250);
-  rotSlider->set_callback([&](float value) {
-    serialise(sender, "env_rotation", value * 360.f);
+  auto* rotationWheel = new Rotator(window);
+  rotationWheel->set_callback([&](float value) {
+    float angle = value/(2.f*M_PI) * 360.f;
+    serialise(sender, "env_rotation", angle);
   });
-  rotSlider->set_value(0.f);
-  rotSlider->callback()(rotSlider->value());
-  add_widget("Env NIF Rotation", rotSlider);
+  add_widget("Env NIF Rotation", rotationWheel);
 
   nifChooser = new nanogui::ComboBox(window, {"No NIF models available"});
   nifChooser->set_enabled(false);
@@ -94,6 +99,27 @@ ControlsForm::ControlsForm(nanogui::Screen* screen,
   toggleButton->set_tooltip("If checked and raw iamge data has been received from the server then HDR"
                             " values will be displayed on zoom. " + hdrDelayNote);
   add_widget("Pixel Values", toggleButton);
+
+  add_group("Sampling Parameters");
+  samplesText = new nanogui::TextBox(window, "-");
+  auto* samplesSlider = new nanogui::Slider(window);
+  samplesSlider->set_tooltip("Reduce to improve frame-rate. Higher values improve preview quality but increase latency.");
+  samplesSlider->set_fixed_width(250);
+  samplesSlider->set_callback([&](float value) {
+    samplesText->set_value(std::to_string(convertSampleValue(value)));
+  });
+  samplesSlider->set_final_callback([&](float value) {
+    const auto s = convertSampleValue(value);
+    serialise(sender, "interactive_samples", s);
+    BOOST_LOG_TRIVIAL(debug) << "Sending new interactive-sample count: " << s;
+  });
+  samplesSlider->callback()(samplesSlider->value());
+  samplesSlider->final_callback()(samplesSlider->value());
+  add_widget("Interactive samples", samplesSlider);
+  samplesText->set_editable(false);
+  samplesText->set_units(" per step");
+  samplesText->set_alignment(nanogui::TextBox::Alignment::Right);
+  add_widget("Sample count:", samplesText);
 
   // Info/stats/status:
   add_group("Render Status");

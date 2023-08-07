@@ -10,23 +10,24 @@
 namespace packets {
 
 const std::vector<std::string> packetTypes {
-    "stop",            // Tell server to stop rendering and exit (client -> server)
-    "detach",          // Detach the remote-ui but continue: server can destroy the
-                       // communication interface and continue (client -> server)
-    "progress",        // Send render progress (server -> client)
-    "sample_rate",     // Send throughput measurement (server -> client)
-    "env_rotation",    // Update environment light rotation (client -> server)
-    "exposure",        // Update tone-map exposure (client -> server)
-    "gamma",           // Update tone-map gamma (client -> server)
-    "fov",             // Update field-of-view (client -> server)
-    "load_nif",        // Insruct server to load a new
-                       // NIF environemnt light (client -> server)
-    "render_preview",  // used to send compressed video packets
-                       // for render preview (server -> client)
-    "hdr_header",      // Header for sending full uncompressed HDR
-                       // image data (server -> client).
-    "hdr_packet",      // Packet containing a portion of the full uncompressed
-                       // HDR image (server -> client).
+    "stop",                // Tell server to stop rendering and exit (client -> server)
+    "detach",              // Detach the remote-ui but continue: server can destroy the
+                           // communication interface and continue (client -> server)
+    "progress",            // Send render progress (server -> client)
+    "sample_rate",         // Send throughput measurement (server -> client)
+    "env_rotation",        // Update environment light rotation (client -> server)
+    "exposure",            // Update tone-map exposure (client -> server)
+    "gamma",               // Update tone-map gamma (client -> server)
+    "fov",                 // Update field-of-view (client -> server)
+    "load_nif",            // Insruct server to load a new
+                           // NIF environemnt light (client -> server)
+    "render_preview",      // used to send compressed video packets
+                           // for render preview (server -> client)
+    "hdr_header",          // Header for sending full uncompressed HDR
+                           // image data (server -> client).
+    "hdr_packet",          // Packet containing a portion of the full uncompressed
+                           // HDR image (server -> client).
+    "interactive_samples", // New value for interactive samples per step
 };
 
 // Struct and serialize function for HDR

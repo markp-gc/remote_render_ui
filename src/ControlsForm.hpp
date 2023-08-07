@@ -34,6 +34,8 @@ private:
   nanogui::Button* saveButton;
   std::map<std::string, PacketSubscription> subs;
 
+  nanogui::TextBox* samplesText;
+
   // Receive raw image:
   VideoPreviewWindow* preview;
   packets::HdrHeader hdrHeader;
