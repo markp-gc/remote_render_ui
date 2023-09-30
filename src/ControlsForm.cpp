@@ -58,7 +58,7 @@ ControlsForm::ControlsForm(nanogui::Screen* screen,
 
   // Camera controls
   add_group("Camera Parameters");
-  auto* fovSlider = new nanogui::Slider(window);
+  fovSlider = new nanogui::Slider(window);
   fovSlider->set_fixed_width(250);
   fovSlider->set_callback([&](float value) {
     serialise(sender, "fov", value * 360.f);
@@ -66,6 +66,14 @@ ControlsForm::ControlsForm(nanogui::Screen* screen,
   fovSlider->set_value(90.f / 360.f);
   fovSlider->callback()(fovSlider->value());
   add_widget("Field of View", fovSlider);
+
+  // Subscribe to FOV updates from the server (on start-up the server can decide the initial value):
+  subs["fov"] = receiver.subscribe("fov", [this](const ComPacket::ConstSharedPacket& packet) {
+    float fovRadians = 0.f;
+    deserialise(packet, fovRadians);
+    BOOST_LOG_TRIVIAL(trace) << "Received FOV update: " << fovRadians;
+    fovSlider->set_value(fovRadians / (2.f * M_PI));
+  });
 
   // Sensor controls
   add_group("Film Parameters");

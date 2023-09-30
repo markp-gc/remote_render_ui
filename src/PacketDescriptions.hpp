@@ -18,7 +18,7 @@ const std::vector<std::string> packetTypes {
     "env_rotation",        // Update environment light rotation (client -> server)
     "exposure",            // Update tone-map exposure (client -> server)
     "gamma",               // Update tone-map gamma (client -> server)
-    "fov",                 // Update field-of-view (client -> server)
+    "fov",                 // Update field-of-view (bi-directional)
     "load_nif",            // Insruct server to load a new
                            // NIF environemnt light (client -> server)
     "render_preview",      // used to send compressed video packets
@@ -27,7 +27,8 @@ const std::vector<std::string> packetTypes {
                            // image data (server -> client).
     "hdr_packet",          // Packet containing a portion of the full uncompressed
                            // HDR image (server -> client).
-    "interactive_samples", // New value for interactive samples per step
+    "interactive_samples", // New value for interactive samples per step (client -> server)
+    "ready",               // Used to sync with the other side once all other subscribers are ready (bi-directional)
 };
 
 // Struct and serialize function for HDR
@@ -45,7 +46,6 @@ template <typename T>
 void serialize(T& ar, HdrHeader& s) {
   ar(s.width, s.height, s.packets);
 }
-
 
 struct HdrPacket {
   std::uint32_t id;

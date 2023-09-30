@@ -30,8 +30,12 @@ public:
 private:
   FileLookup fileMapping;
   nanogui::Window* window;
+
+  // We need to hold onto these pointers so that
+  // subscriber callbacks can access them:
   nanogui::ComboBox* nifChooser;
   nanogui::Button* saveButton;
+  nanogui::Slider* fovSlider;
   std::map<std::string, PacketSubscription> subs;
 
   nanogui::TextBox* samplesText;
