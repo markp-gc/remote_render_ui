@@ -29,6 +29,7 @@ const std::vector<std::string> packetTypes {
                            // HDR image (server -> client).
     "interactive_samples", // New value for interactive samples per step (client -> server)
     "ready",               // Used to sync with the other side once all other subscribers are ready (bi-directional)
+    "tile_histogram",      // Histogram tile workload distribution (server -> client)
 };
 
 // Struct and serialize function for HDR

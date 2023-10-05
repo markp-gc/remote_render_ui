@@ -2,6 +2,7 @@
 
 #include "ControlsForm.hpp"
 #include "custom_widgets/rotator.hpp"
+#include <nanogui/graph.h>
 
 #include <PacketSerialisation.h>
 #include <cereal/types/string.hpp>
@@ -176,6 +177,28 @@ ControlsForm::ControlsForm(nanogui::Screen* screen,
   });
 
   add_group("Info/Stats");
+
+  auto hist = new nanogui::Graph(window);
+  hist->set_caption("splats per tile");
+  add_widget("Workload Balance", hist);
+
+  subs["tile_histogram"] = receiver.subscribe("tile_histogram", [hist](const ComPacket::ConstSharedPacket& packet) {
+    std::vector<std::uint32_t> data;
+    deserialise(packet, data);
+    std::vector<float> dataf;
+    dataf.reserve(data.size());
+
+    float max = 0.f;
+    for (const auto& v : data) {
+      if (v > max) { max = v; }
+    }
+
+    for (const auto& v : data) {
+      dataf.push_back(v / max);
+    }
+    hist->set_values(dataf);
+  });
+
   bitRateText = new nanogui::TextBox(window, "-");
   bitRateText->set_editable(false);
   bitRateText->set_units("Mbps");
