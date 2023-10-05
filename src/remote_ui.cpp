@@ -113,9 +113,6 @@ int main(int argc, char** argv) {
       const auto h = args.at("height").as<int>();
       nanogui::Vector2i screenSize(w, h);
       RenderClientApp app(screenSize, *sender, *receiver);
-      if (!remoteNifModels.empty()) {
-        app.set_nif_selection(remoteNifModels);
-      }
       app.draw_all();
       app.set_visible(true);
       nanogui::mainloop(1 / 60.f * 1000);

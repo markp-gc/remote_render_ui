@@ -22,8 +22,6 @@ public:
 
   void set_position(const nanogui::Vector2i& pos);
 
-  void set_nif_selection(const FileLookup& nifFileMapping);
-
   nanogui::TextBox* bitRateText;
   nanogui::TextBox* frameRateText;
 
@@ -33,7 +31,6 @@ private:
 
   // We need to hold onto these pointers so that
   // subscriber callbacks can access them:
-  nanogui::ComboBox* nifChooser;
   nanogui::Button* saveButton;
   nanogui::Slider* fovSlider;
   std::map<std::string, PacketSubscription> subs;

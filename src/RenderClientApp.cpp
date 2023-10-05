@@ -68,8 +68,3 @@ void RenderClientApp::draw(NVGcontext* ctx) {
   }
   Screen::draw(ctx);
 }
-
-void RenderClientApp::set_nif_selection(const ControlsForm::FileLookup& nifFileMapping) {
-  form->set_nif_selection(nifFileMapping);
-  perform_layout();
-}
