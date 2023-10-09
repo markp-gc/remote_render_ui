@@ -12,11 +12,6 @@
 #include <iomanip>
 #include <fstream>
 
-namespace {
-std::string hdrDelayNote = "Note that the HDR values are updated infrequently"
-                            " so can be many seconds out of date.";
-}
-
 std::uint32_t convertSampleValue(float value) {
   // Maximum of 16 otherwise latency will be too high:
   std::uint32_t sampleCount = value * 16;
@@ -127,6 +122,18 @@ ControlsForm::ControlsForm(nanogui::Screen* screen,
 
   // Status/stop button:
   add_group("Render Status");
+
+  deviceChooser = new nanogui::ComboBox(window, {"cpu", "ipu"});
+  deviceChooser->set_enabled(true);
+  deviceChooser->set_side(nanogui::Popup::Side::Left);
+  deviceChooser->set_tooltip("Pass a JSON file using '--nif-paths' option to enable selection.");
+  deviceChooser->set_callback([&](int index) {
+    auto deviceString = deviceChooser->items()[index];
+    BOOST_LOG_TRIVIAL(debug) << "Sending new device: " << deviceString;
+    serialise(sender, "device", deviceString);
+  });
+  deviceChooser->set_font_size(16);
+  add_widget("Choose render device: ", deviceChooser);
 
   add_button("Stop", [screen, &sender]() {
     serialise(sender, "stop", true);

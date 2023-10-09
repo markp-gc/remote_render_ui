@@ -33,6 +33,7 @@ private:
   // subscriber callbacks can access them:
   nanogui::Button* saveButton;
   nanogui::Slider* fovSlider;
+  nanogui::ComboBox* deviceChooser;
   std::map<std::string, PacketSubscription> subs;
 
   nanogui::TextBox* samplesText;
