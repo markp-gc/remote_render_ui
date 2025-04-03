@@ -11,12 +11,15 @@ where the dependencies can be satisfied.
 
 The following are required system dependencies:
 - CMake 3.20 or later (note that you can install the latest version via `pip install` if your system package manager installs an older version).
+- Ninja build system for CMake (optional)
 - Boost (only tested with 1.78).
 - FFmpeg (See README.md in the [videolib submodule](https://github.com/markp-gc/videolib) for instructions and version compatibilty).
-- Ubuntu: GLFW
-  - sudo apt install libglfw3-dev
-- Mac OSX: Xcode with metal support
-  - Install a version of Xcode that is compatible with your version of OSX (only tested on OSX 11.6).
+- Ubuntu only: GLFW
+- Mac OSX only: Xcode with metal support
+- E.g. to install Ubuntu dependencies:
+  - sudo apt install libglfw3-dev libboost-dev cmake ninja-build
+- E.g. using brew on Mac OSX:
+  - brew install boost cmake ninja
 
 The following dependencies are cloned and built as submodules (so do not need to be installed manually):
 - [nanogui](https://github.com/mitsuba-renderer/nanogui): a cross platform toolkit for simple GUI applications.
