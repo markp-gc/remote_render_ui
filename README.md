@@ -10,7 +10,7 @@ where the dependencies can be satisfied.
 ### Dependencies
 
 The following are required system dependencies:
-- CMake 3.20 or later (note that you can install the latest version via `pip install` if your system package manager installs an older version).
+- CMake >3.5 <=4.0 (install a specific version via `pip install` if your system defaults to an incompatible version).
 - Ninja build system for CMake (optional)
 - Boost (only tested with 1.78).
 - FFmpeg (See README.md in the [videolib submodule](https://github.com/markp-gc/videolib) for instructions and version compatibilty).
