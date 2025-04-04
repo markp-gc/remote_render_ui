@@ -22,6 +22,7 @@ endif()
 
 find_package(OpenGL REQUIRED)
 find_package(Boost REQUIRED COMPONENTS program_options log)
+find_package(OpenCV REQUIRED)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
@@ -43,16 +44,26 @@ add_definitions(${NANOGUI_EXTRA_DEFS})
 add_subdirectory(external/packetcomms)
 add_subdirectory(external/videolib)
 
-include_directories(${NANOGUI_EXTRA_INCS} ${PACKETCOMMS_INCLUDES} ${VIDEOLIB_INCLUDES})
+include_directories(${NANOGUI_EXTRA_INCS} ${PACKETCOMMS_INCLUDES} ${VIDEOLIB_INCLUDES} ${OpenCV_INCLUDE_DIRS})
 
 # Build the interface app:
 file(GLOB_RECURSE SRC ${PROJECT_SOURCE_DIR}/src/*.hpp ${PROJECT_SOURCE_DIR}/src/*.cpp)
 add_executable(remote-ui ${SRC})
-target_link_libraries(
-remote-ui
-Boost::program_options Boost::log nanogui
-${NANOGUI_EXTRA_LIBS} ${OPENGL_LIBRARIES}
-${PACKETCOMMS_LIBRARIES} ${VIDEOLIB_LIBRARIES}
+
+# Build a server executable for testing:
+file(GLOB_RECURSE SERVER_SRC ${PROJECT_SOURCE_DIR}/test_server/*.hpp ${PROJECT_SOURCE_DIR}/test_server/*.cpp)
+
+include_directories(${CMAKE_CURRENT_SOURCE_DIR}/src)
+add_executable(test-server ${SERVER_SRC})
+
+SET(LIBS
+  Boost::program_options Boost::log nanogui
+  ${NANOGUI_EXTRA_LIBS} ${OPENGL_LIBRARIES}
+  ${PACKETCOMMS_LIBRARIES} ${VIDEOLIB_LIBRARIES}
+  ${OpenCV_LIBS}
 )
+
+target_link_libraries(remote-ui ${LIBS})
+target_link_libraries(test-server ${LIBS})
 
 target_compile_definitions(remote-ui PRIVATE -DBOOST_LOG_DYN_LINK)

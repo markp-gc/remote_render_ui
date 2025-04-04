@@ -148,15 +148,19 @@ void VideoPreviewWindow::decodeVideoFrame() {
 
   if (newFrameDecoded) {
     double bps = videoClient->computeVideoBandwidthConsumed();
-    auto imbps = bps / (1024.0 * 1024.0);
-    mbps = (0.9f * mbps) + (.1f * imbps);
-    BOOST_LOG_TRIVIAL(trace) << "Video bit-rate instantaneous: " << imbps << " Mbps" << std::endl;
-    BOOST_LOG_TRIVIAL(debug) << "Video bit-rate filtered: " << mbps << " Mbps" << std::endl;
+    if (std::isfinite(bps)) {
+      auto imbps = bps / (1024.0 * 1024.0);
+      mbps = (0.9f * mbps) + (.1f * imbps);
+      BOOST_LOG_TRIVIAL(trace) << "Video bit-rate instantaneous: " << imbps << " Mbps" << std::endl;
+      BOOST_LOG_TRIVIAL(debug) << "Video bit-rate filtered: " << mbps << " Mbps" << std::endl;
+    }
 
     // Calculate instantaneous frame rate:
     auto newFrameTime = std::chrono::steady_clock::now();
     auto ifps = 1000.0 / std::chrono::duration_cast<std::chrono::milliseconds>(newFrameTime - m_lastFrameTime).count();
-    fps = (0.9f * fps) + (.1f * ifps);
+    if (std::isfinite(ifps)) {
+      fps = (0.9f * fps) + (.1f * ifps);
+    }
     BOOST_LOG_TRIVIAL(trace) << "Frame rate instantaneous: " << ifps << " Fps" << std::endl;
     BOOST_LOG_TRIVIAL(debug) << "Frame rate filtered: " << fps << " Fps" << std::endl;
     m_lastFrameTime = newFrameTime;

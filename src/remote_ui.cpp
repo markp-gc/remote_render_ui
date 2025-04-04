@@ -107,6 +107,7 @@ int main(int argc, char** argv) {
     auto receiver = std::make_unique<PacketDemuxer>(*socket, packets::packetTypes);
 
     nanogui::init();
+    BOOST_LOG_TRIVIAL(trace) << "Initialised nanogui";
 
     {
       const auto w = args.at("width").as<int>();
@@ -118,6 +119,7 @@ int main(int argc, char** argv) {
       }
       app.draw_all();
       app.set_visible(true);
+      BOOST_LOG_TRIVIAL(trace) << "Entering nanogui main loop";
       nanogui::mainloop(1 / 60.f * 1000);
     }
 
