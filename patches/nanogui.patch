@@ -1,5 +1,5 @@
 diff --git a/CMakeLists.txt b/CMakeLists.txt
-index 2f89d2e..8edcf40 100644
+index 2f89d2e..ac69053 100644
 --- a/CMakeLists.txt
 +++ b/CMakeLists.txt
 @@ -1,4 +1,4 @@
@@ -8,6 +8,15 @@ index 2f89d2e..8edcf40 100644
  set(CMAKE_OSX_DEPLOYMENT_TARGET 10.14)
  
  # Extract project version from source
+@@ -85,7 +85,7 @@ elseif (APPLE AND ((CMAKE_OSX_ARCHITECTURES MATCHES "arm64") OR
+   # Apple M1 compatibility
+   set(NANOGUI_NATIVE_FLAGS_DEFAULT "-mcpu=apple-a12")
+ else()
+-  set(NANOGUI_NATIVE_FLAGS_DEFAULT "-march=nehalem")
++  set(NANOGUI_NATIVE_FLAGS_DEFAULT "-march=native")
+ endif()
+ 
+ option(NANOGUI_BUILD_EXAMPLES            "Build NanoGUI example application?" ON)
 diff --git a/resources/bin2c.cmake b/resources/bin2c.cmake
 index 97884ef..76b94b1 100644
 --- a/resources/bin2c.cmake
