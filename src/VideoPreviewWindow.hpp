@@ -3,6 +3,7 @@
 #pragma once
 
 #include <nanogui/nanogui.h>
+#include <opencv2/imgproc.hpp>
 
 #include "VideoClient.hpp"
 
@@ -24,13 +25,7 @@ public:
 
   void reset() { imageView->reset(); }
 
-  void setRawBufferData(std::vector<float>& buffer) {
-    rawBuffer = buffer;
-  }
-
-  void displayRawValues(bool displayRaw) {
-    showRawPixelValues = displayRaw;
-  }
+  cv::Mat getImage() const;
 
 protected:
   void startDecodeThread();
@@ -43,7 +38,6 @@ protected:
 private:
   std::unique_ptr<VideoClient> videoClient;
   std::vector<std::uint8_t> bgrBuffer;
-  std::vector<float> rawBuffer;
   nanogui::Texture* texture;
   nanogui::ImageView* imageView;
   double mbps;
@@ -54,5 +48,4 @@ private:
   std::mutex bufferMutex;
   std::atomic<bool> newFrameDecoded;
   std::atomic<bool> runDecoderThread;
-  bool showRawPixelValues;
 };

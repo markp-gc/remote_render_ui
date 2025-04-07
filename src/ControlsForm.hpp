@@ -22,13 +22,12 @@ public:
 
   void set_position(const nanogui::Vector2i& pos);
 
-  void set_nif_selection(const FileLookup& nifFileMapping);
-
   nanogui::TextBox* bitRateText;
   nanogui::TextBox* frameRateText;
 
 private:
-  FileLookup fileMapping;
+  void saveImage() const;
+
   nanogui::Window* window;
 
   // We need to hold onto these pointers so that
@@ -42,5 +41,4 @@ private:
 
   // Receive raw image:
   VideoPreviewWindow* preview;
-  void savePfm(const std::string& filename);
 };

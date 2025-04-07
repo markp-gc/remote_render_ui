@@ -18,8 +18,6 @@ public:
 
   virtual void draw(NVGcontext* ctx);
 
-  void set_nif_selection(const ControlsForm::FileLookup& nifFileMapping);
-
 private:
   PacketMuxer& sender;
   VideoPreviewWindow* preview;

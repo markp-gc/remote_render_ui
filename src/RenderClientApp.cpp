@@ -13,11 +13,10 @@ RenderClientApp::RenderClientApp(const nanogui::Vector2i& size, PacketMuxer& tx,
       preview(nullptr),
       form(nullptr) {
 
-  form = new ControlsForm(this, tx, rx, preview);
-
   syncWithServer(tx, rx, "ready");
 
   preview = new VideoPreviewWindow(this, "Render Preview", rx);
+  form = new ControlsForm(this, tx, rx, preview);
 
   // Have to manually set positions due to bug in ComboBox:
   const int margin = 10;
@@ -67,9 +66,4 @@ void RenderClientApp::draw(NVGcontext* ctx) {
     form->frameRateText->set_value(ss.str());
   }
   Screen::draw(ctx);
-}
-
-void RenderClientApp::set_nif_selection(const ControlsForm::FileLookup& nifFileMapping) {
-  form->set_nif_selection(nifFileMapping);
-  perform_layout();
 }

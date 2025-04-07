@@ -17,8 +17,7 @@ VideoPreviewWindow::VideoPreviewWindow(
       m_lastFrameTime(std::chrono::steady_clock::now()),
       fps(0.f),
       newFrameDecoded(false),
-      runDecoderThread(true),
-      showRawPixelValues(false) {
+      runDecoderThread(true) {
   using namespace nanogui;
   using namespace std::chrono_literals;
   bool videoOk = videoClient->initialiseVideoStream(5s);
@@ -69,20 +68,11 @@ VideoPreviewWindow::VideoPreviewWindow(
           // The information provided by this callback is used to
           // display pixel values at high magnification:
           auto w = videoClient->getFrameWidth();
-          if (showRawPixelValues && !rawBuffer.empty()) {
-            // If we have the raw HDR data available then use that
-            // for the pixel labels instead:
-            std::size_t index = (pos.x() + w * pos.y()) * 3;
-            for (int c = 0; c < 3; ++c) {
-              float value = rawBuffer[index + c];
-              snprintf(out[c], size, "%.2f", value);
-            }
-          } else {
-            std::size_t index = (pos.x() + w * pos.y()) * texture->channels();
-            for (int c = 0; c < texture->channels(); ++c) {
-              uint8_t value = bgrBuffer[index + c];
-              snprintf(out[c], size, "%i", (int)value);
-            }
+
+          std::size_t index = (pos.x() + w * pos.y()) * texture->channels();
+          for (int c = 0; c < texture->channels(); ++c) {
+            uint8_t value = bgrBuffer[index + c];
+            snprintf(out[c], size, "%i", (int)value);
           }
         });
 
@@ -96,6 +86,15 @@ VideoPreviewWindow::VideoPreviewWindow(
 
 VideoPreviewWindow::~VideoPreviewWindow() {
   stopDecodeThread();
+}
+
+// Return the bgrBuffer as an opencv image:
+cv::Mat VideoPreviewWindow::getImage() const {
+  const auto w = videoClient->getFrameWidth();
+  const auto h = videoClient->getFrameHeight();
+  BOOST_LOG_TRIVIAL(info) << "Retrieving image " << w << "x" << h;
+  cv::Mat image(h, w, CV_8UC4, (void*)bgrBuffer.data());
+  return image;
 }
 
 void VideoPreviewWindow::startDecodeThread() {

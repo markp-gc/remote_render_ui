@@ -11,10 +11,7 @@
 #include <iomanip>
 #include <fstream>
 
-namespace {
-std::string hdrDelayNote = "Note that the HDR values are updated infrequently"
-                            " so can be many seconds out of date.";
-}
+#include <opencv2/highgui.hpp>
 
 std::uint32_t convertSampleValue(float value) {
   // Maximum of 16 otherwise latency will be too high:
@@ -93,28 +90,18 @@ ControlsForm::ControlsForm(nanogui::Screen* screen,
   add_widget("Frame rate:", frameRateText);
 
   add_group("File Manager");
-  saveButton = add_button("Save image", [&]() {
-    BOOST_LOG_TRIVIAL(info) << "Save not implemented";
+  saveButton = add_button("Save image", [this]() {
+    saveImage();
   });
-  saveButton->set_tooltip("Save raw HDR image as a portable float map (PFM). " + hdrDelayNote);
-  saveButton->set_enabled(false);
+  saveButton->set_tooltip("Save preview image locally.");
 }
 
 void ControlsForm::set_position(const nanogui::Vector2i& pos) {
   window->set_position(pos);
 }
 
-void ControlsForm::set_nif_selection(const FileLookup& nifFileMapping) {
-  fileMapping = nifFileMapping;
-  std::vector<std::string> items;
-  for (const auto& p : nifFileMapping) {
-    items.push_back(p.first);
-  }
-  nifChooser->set_items(items);
-  nifChooser->set_tooltip("Tell the remote application to load a new NIF model.");
-  nifChooser->set_enabled(true);
-  if (nifChooser->items().size() > 0) {
-    nifChooser->set_selected_index(0);
-    nifChooser->callback()(0);
-  }
+void ControlsForm::saveImage() const {
+  const std::string fn = "preview.png";
+  BOOST_LOG_TRIVIAL(info) << "Saving image as " << fn;
+  cv::imwrite(fn, preview->getImage());
 }
