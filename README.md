@@ -18,7 +18,7 @@ The following are required system dependencies:
 - Ubuntu only: GLFW
 - Mac OSX only: Xcode with metal support
 - E.g. to install Ubuntu dependencies:
-  - sudo apt install libglfw3-dev libboost-dev cmake ninja-build libopencv-dev
+  - sudo apt install libglfw3-dev libboost-dev libboost-log-dev libboost-program-options-dev cmake ninja-build libopencv-dev libxinerama-dev libxcursor-dev libxi-dev libboost-test-dev
 - E.g. using brew on Mac OSX:
   - brew install boost cmake ninja opencv
 
