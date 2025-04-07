@@ -14,7 +14,6 @@
 #include <boost/log/core.hpp>
 #include <boost/log/expressions.hpp>
 #include <boost/log/trivial.hpp>
-#include <boost/program_options.hpp>
 #include <boost/property_tree/json_parser.hpp>
 #include <boost/property_tree/ptree.hpp>
 
@@ -22,6 +21,7 @@
 #include "RenderClientApp.hpp"
 #include "VideoPreviewWindow.hpp"
 #include "PacketDescriptions.hpp"
+#include "options.hpp"
 
 boost::program_options::options_description getOptions() {
   namespace po = boost::program_options;
@@ -31,25 +31,9 @@ boost::program_options::options_description getOptions() {
   ("port", po::value<int>()->default_value(3000), "Port number to connect on.")
   ("host", po::value<std::string>()->default_value("localhost"), "Host to connect to.")
   ("log-level", po::value<std::string>()->default_value("info"), "Set the log level to one of the following: 'trace', 'debug', 'info', 'warn', 'err', 'critical', 'off'.")
-  ("nif-paths", po::value<std::string>()->default_value(""), "JSON file containing a mapping from menu names to paths to NIF models on the remote. Used to build the NIF selection menu.")
   ("width,w", po::value<int>()->default_value(1320), "Main window width in pixels.")
   ("height,h", po::value<int>()->default_value(800), "Main window height in pixels.");
   return desc;
-}
-
-boost::program_options::variables_map
-parseOptions(int argc, char** argv, boost::program_options::options_description&& desc) {
-  namespace po = boost::program_options;
-
-  po::variables_map vm;
-  po::store(po::parse_command_line(argc, argv, desc), vm);
-  if (vm.count("help")) {
-    std::cout << desc << "\n";
-    throw std::runtime_error("Show help");
-  }
-
-  po::notify(vm);
-  return vm;
 }
 
 std::map<std::string, std::string>

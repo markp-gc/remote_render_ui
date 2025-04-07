@@ -1,8 +1,11 @@
+// Copyright (c) 2025 Graphcore Ltd. All rights reserved.
+
 #include <PacketComms.h>
 #include <PacketSerialisation.h>
 #include <VideoLib.h>
 #include <network/TcpSocket.h>
 #include <PacketDescriptions.hpp>
+#include <options.hpp>
 
 #include <cereal/types/string.hpp>
 #include <cereal/types/vector.hpp>
@@ -10,7 +13,7 @@
 #include <boost/log/trivial.hpp>
 #include <boost/log/core.hpp>
 #include <boost/log/expressions.hpp>
-#include <boost/program_options.hpp>
+
 
 #include <atomic>
 #include <chrono>
@@ -24,21 +27,6 @@ boost::program_options::options_description getOptions() {
   ("port", po::value<int>()->default_value(4242), "Port to listen for connections on.")
   ("log-level", po::value<std::string>()->default_value("debug"), "Set the log level to one of the following: 'trace', 'debug', 'info', 'warn', 'err', 'critical', 'off'.");
   return desc;
-}
-
-boost::program_options::variables_map
-parseOptions(int argc, char** argv, boost::program_options::options_description&& desc) {
-  namespace po = boost::program_options;
-
-  po::variables_map vm;
-  po::store(po::parse_command_line(argc, argv, desc), vm);
-  if (vm.count("help")) {
-    std::cout << desc << "\n";
-    throw std::runtime_error("Show help");
-  }
-
-  po::notify(vm);
-  return vm;
 }
 
 namespace {
