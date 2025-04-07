@@ -35,15 +35,12 @@ private:
   // subscriber callbacks can access them:
   nanogui::ComboBox* nifChooser;
   nanogui::Button* saveButton;
-  nanogui::Slider* fovSlider;
+  nanogui::Slider* slider;
   std::map<std::string, PacketSubscription> subs;
 
   nanogui::TextBox* samplesText;
 
   // Receive raw image:
   VideoPreviewWindow* preview;
-  packets::HdrHeader hdrHeader;
-  std::vector<float> hdrBuffer;
-  std::mutex hdrBufferMutex;
   void savePfm(const std::string& filename);
 };

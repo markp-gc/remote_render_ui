@@ -8,7 +8,7 @@
 #include <iomanip>
 
 RenderClientApp::RenderClientApp(const nanogui::Vector2i& size, PacketMuxer& tx, PacketDemuxer& rx)
-    : nanogui::Screen(size, "IPU Neural Render Preview", false),
+    : nanogui::Screen(size, "Image Preview", false),
       sender(tx),
       preview(nullptr),
       form(nullptr) {

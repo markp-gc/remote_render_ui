@@ -2,7 +2,7 @@
 
 ![Screenshot of User Interface](images/screenshot.png "Screenshot of UI.")
 
-This is a prototype remote user-interface that connects to a rendering server ([IPU path tracer](https://github.com/markp-gc/ipu_path_trace)) running on a remote IPU machine.
+This is a prototype remote user-interface that connects to a rendering server running on a remote machine.
 
 It has been tested on Mac OSX 11.6 and Ubuntu 18. It may also work on other platforms
 where the dependencies can be satisfied.

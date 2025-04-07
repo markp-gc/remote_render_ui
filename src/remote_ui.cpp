@@ -36,26 +36,6 @@ boost::program_options::options_description getOptions() {
   return desc;
 }
 
-std::map<std::string, std::string>
-jsonFileToMap(const std::string& file) {
-  std::map<std::string, std::string> m;
-
-  using boost::property_tree::ptree;
-  using boost::property_tree::read_json;
-  using boost::property_tree::write_json;
-  ptree pt;
-  read_json(file, pt);
-
-  for (const auto& p : pt) {
-    const std::string& name = p.first;
-    auto path = p.second.get<std::string>("");
-    m.insert(std::make_pair(name, path));
-    BOOST_LOG_TRIVIAL(debug) << "Loaded NIF entry. Name: '" << name << "' remote-path: '" << path << "'";
-  }
-
-  return m;
-}
-
 int main(int argc, char** argv) {
   auto args = parseOptions(argc, argv, getOptions());
 
@@ -67,13 +47,6 @@ int main(int argc, char** argv) {
   logging::core::get()->set_filter(logging::trivial::severity >= level);
 
   try {
-    // Parse NIF description before attempting to connect:
-    std::map<std::string, std::string> remoteNifModels;
-    auto nifPathJsonFile = args.at("nif-paths").as<std::string>();
-    if (!nifPathJsonFile.empty()) {
-      remoteNifModels = jsonFileToMap(nifPathJsonFile);
-    }
-
     // Create comms system:
     using namespace std::chrono_literals;
 
@@ -98,9 +71,6 @@ int main(int argc, char** argv) {
       const auto h = args.at("height").as<int>();
       nanogui::Vector2i screenSize(w, h);
       RenderClientApp app(screenSize, *sender, *receiver);
-      if (!remoteNifModels.empty()) {
-        app.set_nif_selection(remoteNifModels);
-      }
       app.draw_all();
       app.set_visible(true);
       BOOST_LOG_TRIVIAL(trace) << "Entering nanogui main loop";

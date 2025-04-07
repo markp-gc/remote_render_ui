@@ -75,61 +75,24 @@ class InterfaceServer {
       });
       videoStream.reset(new LibAvWriter(videoIO));
 
-      auto subs1 = receiver.subscribe("env_rotation",
-                                      [&](const ComPacket::ConstSharedPacket& packet) {
-                                        deserialise(packet, state.envRotationDegrees);
-                                        BOOST_LOG_TRIVIAL(trace) << "Env rotation new value: " << state.envRotationDegrees;
-                                        stateUpdated = true;
-                                      });
-
-      auto subs2 = receiver.subscribe("detach",
+      auto subs1 = receiver.subscribe("detach",
                                       [&](const ComPacket::ConstSharedPacket& packet) {
                                         deserialise(packet, state.detach);
                                         BOOST_LOG_TRIVIAL(trace) << "Remote UI detached.";
                                         stateUpdated = true;
                                       });
 
-      auto subs3 = receiver.subscribe("stop",
+      auto subs2 = receiver.subscribe("stop",
                                       [&](const ComPacket::ConstSharedPacket& packet) {
                                         deserialise(packet, state.stop);
                                         BOOST_LOG_TRIVIAL(trace) << "Render stopped by remote UI.";
                                         stateUpdated = true;
                                       });
 
-      auto subs4 = receiver.subscribe("exposure",
+      auto subs3 = receiver.subscribe("value",
                                       [&](const ComPacket::ConstSharedPacket& packet) {
-                                        deserialise(packet, state.exposure);
-                                        BOOST_LOG_TRIVIAL(trace) << "Exposure new value: " << state.exposure;
-                                        stateUpdated = true;
-                                      });
-
-      auto subs5 = receiver.subscribe("gamma",
-                                      [&](const ComPacket::ConstSharedPacket& packet) {
-                                        deserialise(packet, state.gamma);
-                                        BOOST_LOG_TRIVIAL(trace) << "Gamma new value: " << state.gamma;
-                                        stateUpdated = true;
-                                    });
-
-      auto subs6 = receiver.subscribe("fov",
-                                      [&](const ComPacket::ConstSharedPacket& packet) {
-                                        deserialise(packet, state.fov);
-                                        // To radians:
-                                        state.fov = state.fov * (M_PI / 180.f);
-                                        BOOST_LOG_TRIVIAL(trace) << "FOV new value: " << state.fov;
-                                        stateUpdated = true;
-                                      });
-
-      auto subs7 = receiver.subscribe("load_nif",
-                                      [&](const ComPacket::ConstSharedPacket& packet) {
-                                        deserialise(packet, state.newNif);
-                                        BOOST_LOG_TRIVIAL(trace) << "Received new NIF path: " << state.newNif;
-                                        stateUpdated = true;
-                                      });
-
-      auto subs8 = receiver.subscribe("interactive_samples",
-                                      [&](const ComPacket::ConstSharedPacket& packet) {
-                                        deserialise(packet, state.interactiveSamples);
-                                        BOOST_LOG_TRIVIAL(trace) << "Interactive samples new value: " << state.interactiveSamples;
+                                        deserialise(packet, state.value);
+                                        BOOST_LOG_TRIVIAL(trace) << "New value: " << state.value;
                                         stateUpdated = true;
                                       });
 
@@ -152,20 +115,9 @@ class InterfaceServer {
   }
 
 public:
-  enum class Status {
-    Stop,
-    Restart,
-    Continue,
-    Disconnected
-  };
 
   struct State {
-    float envRotationDegrees = 0.f;
-    float exposure = 0.f;
-    float gamma = 2.2f;
-    float fov = 1.58f;
-    std::uint32_t interactiveSamples = 1;
-    std::string newNif;
+    float value = 1.f;
     bool stop = false;
     bool detach = false;
   };
@@ -180,7 +132,6 @@ public:
   State consumeState() {
     State tmp = state;
     stateUpdated = false;  // Clear the update flag.
-    state.newNif.clear();  // Clear model load request.
     return tmp;
   }
 
@@ -233,13 +184,7 @@ public:
     }
   }
 
-  void updateSampleRate(float pathRate, float rayRate) {
-    if (sender) {
-      serialise(*sender, "sample_rate", SampleRates{pathRate, rayRate});
-    }
-  }
-
-  void sendPreviewImage(const cv::Mat& ldrImage) {
+  void snedImage(const cv::Mat& ldrImage) {
     VideoFrame frame(ldrImage.data, AV_PIX_FMT_BGR24, ldrImage.cols, ldrImage.rows, ldrImage.step);
     bool ok = videoStream->PutVideoFrame(frame);
     if (!ok) {
@@ -262,7 +207,6 @@ private:
   std::unique_ptr<PacketMuxer> sender;
   std::unique_ptr<LibAvWriter> videoStream;
   State state;
-  cv::Mat hdrImage;
 };
 
 
@@ -311,7 +255,7 @@ int main(int argc, char* argv[]) {
             frameOffset = (frameOffset + 1) % testImage.cols;
 
             // Send a preview image
-            server.sendPreviewImage(testImage);
+            server.snedImage(testImage);
 
             // Send some fake progress updates
             static int step = 0;
@@ -319,21 +263,11 @@ int main(int argc, char* argv[]) {
             step = (step + 1) % totalSteps;
             server.updateProgress(step, totalSteps);
 
-            // Send fake sample rates
-            server.updateSampleRate(1000.0f, 50000.0f);
-
             // Check if state was updated by client
             if (server.stateChanged()) {
                 auto state = server.consumeState();
                 BOOST_LOG_TRIVIAL(info) << "State updated:";
-                BOOST_LOG_TRIVIAL(info) << "  Environment rotation: " << state.envRotationDegrees;
-                BOOST_LOG_TRIVIAL(info) << "  Exposure: " << state.exposure;
-                BOOST_LOG_TRIVIAL(info) << "  Gamma: " << state.gamma;
-                BOOST_LOG_TRIVIAL(info) << "  FOV: " << state.fov;
-
-                if (!state.newNif.empty()) {
-                    BOOST_LOG_TRIVIAL(info) << "  New NIF requested: " << state.newNif;
-                }
+                BOOST_LOG_TRIVIAL(info) << "  Value: " << state.value;
 
                 if (state.detach) {
                     BOOST_LOG_TRIVIAL(info) << "Client requested detach. Exiting.";
