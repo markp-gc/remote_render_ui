@@ -80,6 +80,7 @@ class InterfaceServer {
         if (sender) {
           BOOST_LOG_TRIVIAL(debug) << "Sending compressed video packet of size: " << size;
           sender->emplacePacket("render_preview", reinterpret_cast<VectorStream::CharType*>(buffer), size);
+          BOOST_LOG_TRIVIAL(trace) << "Sender return status: " << sender->ok();
           return sender->ok() ? size : -1;
         }
         return -1;
@@ -149,7 +150,9 @@ class InterfaceServer {
       while (!stopServer && receiver.ok()) {
         std::this_thread::sleep_for(5ms);
       }
+      videoStream.reset(); // This needs to be freed while FFMpegStdFunctionIO is in scope so it can write a tariler.
     }
+    serverReady = false;
     BOOST_LOG_TRIVIAL(info) << "User interface server Tx/Rx loop exited.";
   }
 
