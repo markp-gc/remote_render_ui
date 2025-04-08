@@ -2,6 +2,11 @@ cmake_minimum_required(VERSION 3.5)
 
 project(remote-ui)
 
+if (NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
+  set(CMAKE_BUILD_TYPE Release CACHE STRING "Choose the type of build." FORCE)
+  set_property(CACHE CMAKE_BUILD_TYPE PROPERTY STRINGS "Debug" "Release" "MinSizeRel" "RelWithDebInfo")
+endif()
+
 # Apply a nanogui patch using git and check it was successful
 set(CURRENT_DIR ${CMAKE_CURRENT_SOURCE_DIR})
 set(NANOGUI_DIR ${CMAKE_CURRENT_SOURCE_DIR}/external/nanogui)
@@ -40,11 +45,22 @@ add_subdirectory(external/nanogui)
 set_property(TARGET glfw glfw_objects nanogui PROPERTY FOLDER "dependencies")
 add_definitions(${NANOGUI_EXTRA_DEFS})
 
-# Configure packetcomms suboroject:
+# Configure packetcomms and videolib subprojects:
 add_subdirectory(external/packetcomms)
 add_subdirectory(external/videolib)
 
 include_directories(${NANOGUI_EXTRA_INCS} ${PACKETCOMMS_INCLUDES} ${VIDEOLIB_INCLUDES} ${OpenCV_INCLUDE_DIRS})
+
+# Configure nanobind module:
+find_package(Python 3.10 EXACT COMPONENTS Interpreter Development.Module REQUIRED)
+
+# Detect the installed nanobind package and import it into CMake
+execute_process(
+  COMMAND "${Python_EXECUTABLE}" -m nanobind --cmake_dir
+  OUTPUT_STRIP_TRAILING_WHITESPACE OUTPUT_VARIABLE nanobind_DIR)
+find_package(nanobind CONFIG REQUIRED)
+
+nanobind_add_module(gui_server python/gui_server.cpp)
 
 # Build the interface app:
 file(GLOB_RECURSE SRC ${PROJECT_SOURCE_DIR}/src/*.hpp ${PROJECT_SOURCE_DIR}/src/*.cpp)
