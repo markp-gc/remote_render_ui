@@ -1,32 +1,44 @@
 #include <nanobind/nanobind.h>
 #include <nanobind/stl/string.h>
+#include <nanobind/ndarray.h>
 
 #include <string>
 
-struct Dog {
-    std::string name;
-
-    std::string bark() const {
-        return name + ": woof!";
-    }
-};
+#include "../test_server/InterfaceServer.hpp"
+#include <opencv2/core/core.hpp>
 
 namespace nb = nanobind;
 using namespace nb::literals;
 
-int add(int a, int b = 1) { return a + b; }
-
 NB_MODULE(gui_server, m) {
-    m.def("add", &add, "a"_a, "b"_a = 1,
-          "This function adds two numbers and increments if only one is provided.");
 
-    m.attr("the_answer") = 42;
+    m.def("set_log_level", &InterfaceServer::setLogLevel);
 
-    nb::class_<Dog>(m, "Dog")
+    nb::class_<InterfaceServer::State>(m, "State")
         .def(nb::init<>())
-        .def(nb::init<const std::string &>())
-        .def("bark", &Dog::bark)
-        .def_rw("name", &Dog::name);
+        .def("__repr__", &InterfaceServer::State::toString)
+        .def_rw("value", &InterfaceServer::State::value)
+        .def_rw("stop", &InterfaceServer::State::stop)
+        .def_rw("detach", &InterfaceServer::State::detach);
 
-    m.doc() = "A simple example python extension";
+    nb::class_<InterfaceServer>(m, "InterfaceServer")
+        .def(nb::init<int>(), "port"_a)
+        .def("consume_state", &InterfaceServer::consumeState)
+        .def("get_state", &InterfaceServer::getState, nb::rv_policy::reference)
+        .def("state_changed", &InterfaceServer::stateChanged)
+        .def("start", &InterfaceServer::start)
+        .def("initialise_video_stream", &InterfaceServer::initialiseVideoStream,
+             "width"_a, "height"_a)
+        .def("stop", &InterfaceServer::stop)
+        .def("update_progress", &InterfaceServer::updateProgress,
+             "step"_a, "total_steps"_a)
+        .def("send_image", [](InterfaceServer& self, nb::ndarray<nb::numpy, uint8_t, nb::shape<-1, -1, 3>> array) {
+            // Convert numpy array to cv::Mat
+            int height = array.shape(0);
+            int width = array.shape(1);
+            cv::Mat image(height, width, CV_8UC3, array.data());
+            self.sendImage(image);
+        }, "image"_a);
+
+    m.doc() = "Extension that exposes a graphical user interface server to Python.";
 }
