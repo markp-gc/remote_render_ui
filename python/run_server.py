@@ -34,13 +34,13 @@ while not server.get_state().stop:
     frame_offset = (frame_offset + 1) % test_image.shape[1]
 
     # Send the updated image
-    server.send_image(test_image)
+    server.send_image(test_image, convert_to_bgr=False)
 
     # Send some fake progress updates (ported from C++ code)
     step = (step + 1) % total_steps
     server.update_progress(step, total_steps)
 
-    # Check state
+    # Check state and show changes
     if server.state_changed():
         state = server.consume_state()
         print(f"Value: {state.value}")
@@ -48,5 +48,4 @@ while not server.get_state().stop:
     # Sleep to avoid consuming too much CPU
     time.sleep(0.005)  # 5 milliseconds
 
-# Clean up
 server.stop()

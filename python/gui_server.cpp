@@ -32,13 +32,16 @@ NB_MODULE(gui_server, m) {
         .def("stop", &InterfaceServer::stop)
         .def("update_progress", &InterfaceServer::updateProgress,
              "step"_a, "total_steps"_a)
-        .def("send_image", [](InterfaceServer& self, nb::ndarray<nb::numpy, uint8_t, nb::shape<-1, -1, 3>> array) {
+        .def("send_image", [](InterfaceServer& self, nb::ndarray<nb::numpy, uint8_t, nb::shape<-1, -1, 3>> array, bool convertToBGR) {
             // Convert numpy array to cv::Mat
             int height = array.shape(0);
             int width = array.shape(1);
             cv::Mat image(height, width, CV_8UC3, array.data());
+            if (convertToBGR) {
+                cv::cvtColor(image, image, cv::COLOR_RGB2BGR);
+            }
             self.sendImage(image);
-        }, "image"_a);
+        }, "image"_a, "convert_to_bgr"_a);
 
     m.doc() = "Extension that exposes a graphical user interface server to Python.";
 }
