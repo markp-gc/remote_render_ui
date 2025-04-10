@@ -36,10 +36,13 @@ private:
   nanogui::ComboBox* nifChooser;
   nanogui::Button* saveButton;
   nanogui::Slider* slider;
+
   std::map<std::string, PacketSubscription> subs;
 
   StreamingTextBox* promptBox;
+  nanogui::ToolButton* playPauseButton;
 
   // Receive raw image:
   VideoPreviewWindow* preview;
+  bool isPlaying;
 };

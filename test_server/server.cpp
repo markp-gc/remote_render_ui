@@ -73,12 +73,7 @@ int main(int argc, char* argv[]) {
             if (server.stateChanged()) {
                 auto state = server.consumeState();
                 BOOST_LOG_TRIVIAL(info) << "State updated:";
-                BOOST_LOG_TRIVIAL(info) << "  Value: " << state.value;
-
-                if (state.detach) {
-                    BOOST_LOG_TRIVIAL(info) << "Client requested detach. Exiting.";
-                    break;
-                }
+                BOOST_LOG_TRIVIAL(info) << state.toString();
             }
 
             // Sleep to avoid consuming too much CPU:

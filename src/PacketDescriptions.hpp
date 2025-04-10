@@ -11,11 +11,10 @@ namespace packets {
 
 const std::vector<std::string> packetTypes {
     "stop",                // Tell server to stop rendering and exit (client -> server)
-    "detach",              // Detach the remote-ui but continue: server can destroy the
-                           // communication interface and continue (client -> server)
     "progress",            // Send progress (server -> client)
     "value",               // Update server-side value (client -> server)
     "prompt",              // Update server-side prompt (client -> server)
+    "playback_state",      // Update server-side playback state (client -> server)
     "render_preview",      // used to send compressed video packets
                            // for render preview (server -> client)
     "ready",               // Used to sync with the other side once all other subscribers are ready (bi-directional)

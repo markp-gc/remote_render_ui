@@ -5,7 +5,7 @@
 
 #include <PacketSerialisation.h>
 #include <cereal/types/string.hpp>
-
+#include <nanogui/icons.h>
 #include <boost/log/trivial.hpp>
 
 #include <iomanip>
@@ -20,29 +20,22 @@ ControlsForm::ControlsForm(nanogui::Screen* screen,
                            VideoPreviewWindow* videoPreview)
     : nanogui::FormHelper(screen),
       saveButton(nullptr),
-      preview(videoPreview)
+      preview(videoPreview),
+      isPlaying(true)
 {
   window = add_window(nanogui::Vector2i(10, 10), "Control");
 
-  // Scene controls
-  add_group("Custom controls");
-  auto* rotationWheel = new Rotator(window);
-  rotationWheel->set_callback([&](float value) {
-    serialise(sender, "value", value);
-  });
-  add_widget("Value rotator", rotationWheel);
-  rotationWheel->set_tooltip("Example custom rotator.");
+  add_group("Guidance controls");
 
-  // Camera controls
-  add_group("Other controls");
   slider = new nanogui::Slider(window);
   slider->set_fixed_width(250);
   slider->set_callback([&](float value) {
+    value *= 10.f; // change range to (0..10)
     serialise(sender, "value", value);
   });
-  slider->set_value(0.f);
+  slider->set_value(4.5f);
   slider->callback()(slider->value());
-  add_widget("Value slider", slider);
+  add_widget("Guidance scale", slider);
 
   promptBox = new StreamingTextBox(window, "", 2, 1000);
   promptBox->set_placeholder("Enter prompt...");
@@ -52,30 +45,11 @@ ControlsForm::ControlsForm(nanogui::Screen* screen,
   });
   add_widget("Prompt", promptBox);
 
-  // Subscribe to FOV updates from the server (on start-up the server can decide the initial value):
   subs["value"] = receiver.subscribe("value", [this](const ComPacket::ConstSharedPacket& packet) {
     float value = 0.f;
     deserialise(packet, value);
     BOOST_LOG_TRIVIAL(trace) << "Received value update: " << value;
     slider->set_value(value);
-  });
-
-  // Info/stats/status:
-  add_group("Status");
-  auto progress = new nanogui::ProgressBar(window);
-  add_widget("Progress", progress);
-
-  add_button("Stop", [screen, &sender]() {
-    serialise(sender, "stop", true);
-    screen->set_visible(false);
-  })->set_tooltip("Stop the remote application.");
-
-  // Make a subscriber to receive progress updates:
-  // (the progress pointer needs to be captured by value).
-  subs["progress"] = receiver.subscribe("progress", [progress](const ComPacket::ConstSharedPacket& packet) {
-    float progressValue = 0.f;
-    deserialise(packet, progressValue);
-    progress->set_value(progressValue);
   });
 
   add_group("Info/Stats");
@@ -92,10 +66,28 @@ ControlsForm::ControlsForm(nanogui::Screen* screen,
   add_widget("Frame rate:", frameRateText);
 
   add_group("File Manager");
+
   saveButton = add_button("Save image", [this]() {
     saveImage();
   });
   saveButton->set_tooltip("Save preview image locally.");
+
+  add_group("Server Commands");
+
+  add_button("Stop server", [screen, &sender]() {
+    serialise(sender, "stop", true);
+    screen->set_visible(false);
+  })->set_tooltip("Stop the remote application.");
+
+  playPauseButton = new nanogui::ToolButton(window, isPlaying ? FA_PAUSE : FA_PLAY);
+  playPauseButton->set_callback([&]() {
+      isPlaying = !isPlaying;
+      playPauseButton->set_icon(isPlaying ? FA_PAUSE : FA_PLAY);
+      serialise(sender, "playback_state", isPlaying);
+  });
+  playPauseButton->set_tooltip(isPlaying ? "Pause" : "Play");
+  add_widget("Play/Pause", playPauseButton);
+
 }
 
 void ControlsForm::set_position(const nanogui::Vector2i& pos) {

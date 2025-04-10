@@ -49,13 +49,6 @@ class InterfaceServer {
         });
         videoStream.reset(new LibAvWriter(videoIO));
 
-        auto subs1 = receiver.subscribe("detach",
-                                        [&](const ComPacket::ConstSharedPacket& packet) {
-                                            deserialise(packet, state.detach);
-                                            BOOST_LOG_TRIVIAL(trace) << "Remote UI detached.";
-                                            stateUpdated = true;
-                                        });
-
         auto subs2 = receiver.subscribe("stop",
                                         [&](const ComPacket::ConstSharedPacket& packet) {
                                             deserialise(packet, state.stop);
@@ -74,6 +67,14 @@ class InterfaceServer {
                                         [&](const ComPacket::ConstSharedPacket& packet) {
                                             deserialise(packet, state.prompt);
                                             BOOST_LOG_TRIVIAL(trace) << "New prompt: " << state.prompt;
+                                            stateUpdated = true;
+                                        });
+
+        auto subs5 = receiver.subscribe("playback_state",
+                                        [&](const ComPacket::ConstSharedPacket& packet) {
+                                            deserialise(packet, state.isPlaying);
+                                            BOOST_LOG_TRIVIAL(trace) << "Playback state changed: "
+                                                << (state.isPlaying ? "playing" : "paused");
                                             stateUpdated = true;
                                         });
 
@@ -106,15 +107,16 @@ public:
     }
 
     struct State {
-        State() : prompt(""), value(1.f), stop(false), detach(false) {}
+        State() : prompt(""), value(1.f), stop(false), isPlaying(true) {}
         std::string toString() const{
-            return "State(prompt=" + prompt + ", value=" + std::to_string(value) + ", stop=" + std::to_string(stop) + ", detach=" + std::to_string(detach) + ")";
+            return "State(prompt=" + prompt + ", value=" + std::to_string(value) + ", stop=" + std::to_string(stop) +
+                   ", isPlaying=" + std::to_string(isPlaying) + ")";
         }
 
         std::string prompt;
         float value;
         bool stop;
-        bool detach;
+        bool isPlaying;
     };
 
     InterfaceServer(int portNumber)
