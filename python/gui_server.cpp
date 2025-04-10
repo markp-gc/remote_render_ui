@@ -20,6 +20,7 @@ NB_MODULE(gui_server, m) {
         .def_rw("prompt", &InterfaceServer::State::prompt)
         .def_rw("value", &InterfaceServer::State::value)
         .def_rw("stop", &InterfaceServer::State::stop)
+        .def_rw("steps", &InterfaceServer::State::steps)
         .def_rw("is_playing", &InterfaceServer::State::isPlaying);
 
     nb::class_<InterfaceServer>(m, "InterfaceServer")

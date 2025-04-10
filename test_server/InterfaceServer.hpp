@@ -49,6 +49,13 @@ class InterfaceServer {
         });
         videoStream.reset(new LibAvWriter(videoIO));
 
+        auto subs1 = receiver.subscribe("steps",
+                                        [&](const ComPacket::ConstSharedPacket& packet) {
+                                            deserialise(packet, state.steps);
+                                            BOOST_LOG_TRIVIAL(trace) << "New steps value: " << state.steps;
+                                            stateUpdated = true;
+                                        });
+
         auto subs2 = receiver.subscribe("stop",
                                         [&](const ComPacket::ConstSharedPacket& packet) {
                                             deserialise(packet, state.stop);
@@ -107,13 +114,14 @@ public:
     }
 
     struct State {
-        State() : prompt(""), value(1.f), stop(false), isPlaying(true) {}
+        State() : prompt(""), steps(2), value(1.f), stop(false), isPlaying(true) {}
         std::string toString() const{
-            return "State(prompt=" + prompt + ", value=" + std::to_string(value) + ", stop=" + std::to_string(stop) +
+            return "State(prompt=" + prompt + ", steps=" + std::to_string(steps) + ", value=" + std::to_string(value) + ", stop=" + std::to_string(stop) +
                    ", isPlaying=" + std::to_string(isPlaying) + ")";
         }
 
         std::string prompt;
+        std::uint32_t steps;
         float value;
         bool stop;
         bool isPlaying;

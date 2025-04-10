@@ -27,6 +27,17 @@ ControlsForm::ControlsForm(nanogui::Screen* screen,
 
   add_group("Guidance controls");
 
+  auto* stepsBox = new nanogui::IntBox<int>(window);
+  stepsBox->set_editable(true);
+  stepsBox->set_value(20); // Default value
+  stepsBox->set_min_value(1);
+  stepsBox->set_max_value(100);
+  stepsBox->set_spinnable(true);
+  stepsBox->set_callback([&sender](int value) {
+      serialise(sender, "steps", value);
+  });
+  add_widget("Diffusion Steps", stepsBox);
+
   slider = new nanogui::Slider(window);
   slider->set_fixed_width(250);
   slider->set_callback([&](float value) {

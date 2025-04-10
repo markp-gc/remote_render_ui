@@ -11,11 +11,11 @@ namespace packets {
 
 const std::vector<std::string> packetTypes {
     "stop",                // Tell server to stop rendering and exit (client -> server)
-    "progress",            // Send progress (server -> client)
+    "steps",               // Update step count (client -> server)
     "value",               // Update server-side value (client -> server)
     "prompt",              // Update server-side prompt (client -> server)
     "playback_state",      // Update server-side playback state (client -> server)
-    "render_preview",      // used to send compressed video packets
+    "render_preview",      // used to send compressed video packets (server->client)
                            // for render preview (server -> client)
     "ready",               // Used to sync with the other side once all other subscribers are ready (bi-directional)
 };
