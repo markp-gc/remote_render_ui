@@ -10,6 +10,7 @@
 
 #include "PacketDescriptions.hpp"
 #include "VideoPreviewWindow.hpp"
+#include "custom_widgets/StreamingTextBox.hpp"
 
 /// This control window sends and receives messages via a
 /// PacketMuxer and PacketDemuxer to enact a remote-controlled
@@ -37,7 +38,7 @@ private:
   nanogui::Slider* slider;
   std::map<std::string, PacketSubscription> subs;
 
-  nanogui::TextBox* samplesText;
+  StreamingTextBox* promptBox;
 
   // Receive raw image:
   VideoPreviewWindow* preview;

@@ -10,15 +10,9 @@
 
 #include <iomanip>
 #include <fstream>
+#include <string>
 
 #include <opencv2/highgui.hpp>
-
-std::uint32_t convertSampleValue(float value) {
-  // Maximum of 16 otherwise latency will be too high:
-  std::uint32_t sampleCount = value * 16;
-  // Must be at least 1:
-  return std::max(sampleCount, 1u);
-}
 
 ControlsForm::ControlsForm(nanogui::Screen* screen,
                            PacketMuxer& sender,
@@ -49,6 +43,14 @@ ControlsForm::ControlsForm(nanogui::Screen* screen,
   slider->set_value(0.f);
   slider->callback()(slider->value());
   add_widget("Value slider", slider);
+
+  promptBox = new StreamingTextBox(window, "", 2, 1000);
+  promptBox->set_placeholder("Enter prompt...");
+  promptBox->set_editable(true);
+  promptBox->set_streaming_callback([&](const std::string& prompt) {
+    serialise(sender, "prompt", prompt);
+  });
+  add_widget("Prompt", promptBox);
 
   // Subscribe to FOV updates from the server (on start-up the server can decide the initial value):
   subs["value"] = receiver.subscribe("value", [this](const ComPacket::ConstSharedPacket& packet) {

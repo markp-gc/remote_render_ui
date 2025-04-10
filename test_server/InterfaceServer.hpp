@@ -70,6 +70,13 @@ class InterfaceServer {
                                             stateUpdated = true;
                                         });
 
+        auto subs4 = receiver.subscribe("prompt",
+                                        [&](const ComPacket::ConstSharedPacket& packet) {
+                                            deserialise(packet, state.prompt);
+                                            BOOST_LOG_TRIVIAL(trace) << "New prompt: " << state.prompt;
+                                            stateUpdated = true;
+                                        });
+
         BOOST_LOG_TRIVIAL(info) << "User interface server entering Tx/Rx loop.";
         serverReady = true;
         while (!stopServer && receiver.ok()) {
@@ -99,11 +106,12 @@ public:
     }
 
     struct State {
-        State() : value(1.f), stop(false), detach(false) {}
+        State() : prompt(""), value(1.f), stop(false), detach(false) {}
         std::string toString() const{
-            return "State(value=" + std::to_string(value) + ", stop=" + std::to_string(stop) + ", detach=" + std::to_string(detach) + ")";
+            return "State(prompt=" + prompt + ", value=" + std::to_string(value) + ", stop=" + std::to_string(stop) + ", detach=" + std::to_string(detach) + ")";
         }
 
+        std::string prompt;
         float value;
         bool stop;
         bool detach;

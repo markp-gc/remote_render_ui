@@ -17,6 +17,7 @@ NB_MODULE(gui_server, m) {
     nb::class_<InterfaceServer::State>(m, "State")
         .def(nb::init<>())
         .def("__repr__", &InterfaceServer::State::toString)
+        .def_rw("prompt", &InterfaceServer::State::prompt)
         .def_rw("value", &InterfaceServer::State::value)
         .def_rw("stop", &InterfaceServer::State::stop)
         .def_rw("detach", &InterfaceServer::State::detach);

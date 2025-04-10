@@ -15,6 +15,7 @@ const std::vector<std::string> packetTypes {
                            // communication interface and continue (client -> server)
     "progress",            // Send progress (server -> client)
     "value",               // Update server-side value (client -> server)
+    "prompt",              // Update server-side prompt (client -> server)
     "render_preview",      // used to send compressed video packets
                            // for render preview (server -> client)
     "ready",               // Used to sync with the other side once all other subscribers are ready (bi-directional)
