@@ -25,68 +25,91 @@ class InterfaceServer {
 
     // Set up communication channels and subscriptions and then enter a transmit/receive loop.
     void communicate() {
-        BOOST_LOG_TRIVIAL(info) << "User interface server listening on port " << port;
-        serverSocket.Bind(port);
-        serverSocket.Listen(0);
-        connection = serverSocket.Accept();
+
+        BOOST_LOG_TRIVIAL(info) << "User interface server opening port " << port;
+        bool ok = serverSocket.Bind(port);
+
+        if (ok) {
+            ok = serverSocket.Listen(0);
+        }
+
+        if (ok) {
+            BOOST_LOG_TRIVIAL(info) << "User interface server accepting connections...";
+            connection = serverSocket.Accept();
+        }
+
         if (connection) {
-        BOOST_LOG_TRIVIAL(info) << "User interface client connected.";
-        connection->setBlocking(false);
-        PacketDemuxer receiver(*connection, packets::packetTypes);
-        sender.reset(new PacketMuxer(*connection, packets::packetTypes));
+            BOOST_LOG_TRIVIAL(debug) << "User interface client connected.";
+            connection->setBlocking(false);
+            PacketDemuxer receiver(*connection, packets::packetTypes);
+            sender.reset(new PacketMuxer(*connection, packets::packetTypes));
 
-        syncWithClient(*sender, receiver, "ready");
+            syncWithClient(*sender, receiver, "ready");
+            BOOST_LOG_TRIVIAL(debug) << "Comms synchronised.";
 
-        // Lambda that enqueues video packets via the Muxing system:
-        FFMpegStdFunctionIO videoIO(FFMpegCustomIO::WriteBuffer, [&](uint8_t* buffer, int size) {
-            if (sender) {
-                BOOST_LOG_TRIVIAL(debug) << "Sending compressed video packet of size: " << size;
-                sender->emplacePacket("render_preview", reinterpret_cast<VectorStream::CharType*>(buffer), size);
-                BOOST_LOG_TRIVIAL(trace) << "Sender return status: " << sender->ok();
-                return sender->ok() ? size : -1;
+            // Lambda that enqueues video packets via the Muxing system:
+            FFMpegStdFunctionIO videoIO(FFMpegCustomIO::WriteBuffer, [&](uint8_t* buffer, int size) {
+                if (sender) {
+                    BOOST_LOG_TRIVIAL(debug) << "Sending compressed video packet of size: " << size;
+                    sender->emplacePacket("render_preview", reinterpret_cast<VectorStream::CharType*>(buffer), size);
+                    BOOST_LOG_TRIVIAL(trace) << "Sender return status: " << sender->ok();
+                    return sender->ok() ? size : -1;
+                }
+                return -1;
+            });
+            videoStream.reset(new LibAvWriter(videoIO));
+            BOOST_LOG_TRIVIAL(debug) << "Video stream initialised.";
+
+            auto subs1 = receiver.subscribe("steps",
+                                            [&](const ComPacket::ConstSharedPacket& packet) {
+                                                deserialise(packet, state.steps);
+                                                BOOST_LOG_TRIVIAL(trace) << "New steps value: " << state.steps;
+                                                stateUpdated = true;
+                                            });
+
+            auto subs2 = receiver.subscribe("stop",
+                                            [&](const ComPacket::ConstSharedPacket& packet) {
+                                                deserialise(packet, state.stop);
+                                                BOOST_LOG_TRIVIAL(trace) << "Render stopped by remote UI.";
+                                                stateUpdated = true;
+                                            });
+
+            auto subs3 = receiver.subscribe("value",
+                                            [&](const ComPacket::ConstSharedPacket& packet) {
+                                                deserialise(packet, state.value);
+                                                BOOST_LOG_TRIVIAL(trace) << "New value: " << state.value;
+                                                stateUpdated = true;
+                                            });
+
+            auto subs4 = receiver.subscribe("prompt",
+                                            [&](const ComPacket::ConstSharedPacket& packet) {
+                                                deserialise(packet, state.prompt);
+                                                BOOST_LOG_TRIVIAL(trace) << "New prompt: " << state.prompt;
+                                                stateUpdated = true;
+                                            });
+
+            auto subs5 = receiver.subscribe("playback_state",
+                                            [&](const ComPacket::ConstSharedPacket& packet) {
+                                                deserialise(packet, state.isPlaying);
+                                                BOOST_LOG_TRIVIAL(trace) << "Playback state changed: "
+                                                    << (state.isPlaying ? "playing" : "paused");
+                                                stateUpdated = true;
+                                            });
+
+            BOOST_LOG_TRIVIAL(info) << "User interface server entering Tx/Rx loop.";
+            serverReady = true;
+            while (serverReady && receiver.ok()) {
+                std::this_thread::sleep_for(5ms);
             }
-            return -1;
-        });
-        videoStream.reset(new LibAvWriter(videoIO));
-
-        auto subs1 = receiver.subscribe("detach",
-                                        [&](const ComPacket::ConstSharedPacket& packet) {
-                                            deserialise(packet, state.detach);
-                                            BOOST_LOG_TRIVIAL(trace) << "Remote UI detached.";
-                                            stateUpdated = true;
-                                        });
-
-        auto subs2 = receiver.subscribe("stop",
-                                        [&](const ComPacket::ConstSharedPacket& packet) {
-                                            deserialise(packet, state.stop);
-                                            BOOST_LOG_TRIVIAL(trace) << "Render stopped by remote UI.";
-                                            stateUpdated = true;
-                                        });
-
-        auto subs3 = receiver.subscribe("value",
-                                        [&](const ComPacket::ConstSharedPacket& packet) {
-                                            deserialise(packet, state.value);
-                                            BOOST_LOG_TRIVIAL(trace) << "New value: " << state.value;
-                                            stateUpdated = true;
-                                        });
-
-        BOOST_LOG_TRIVIAL(info) << "User interface server entering Tx/Rx loop.";
-        serverReady = true;
-        while (!stopServer && receiver.ok()) {
-            std::this_thread::sleep_for(5ms);
+            BOOST_LOG_TRIVIAL(info) << "User interface server Tx/Rx loop exited.";
+            // This needs to be freed while FFMpegStdFunctionIO is in scope in order
+            // to write a trailer to the stream:
+            videoStream.reset();
+            serverReady = false;
+        } else {
+            BOOST_LOG_TRIVIAL(error) << "Failed to start user interface server.";
         }
-        videoStream.reset(); // This needs to be freed while FFMpegStdFunctionIO is in scope so it can write a tariler.
-        }
-        serverReady = false;
-        BOOST_LOG_TRIVIAL(info) << "User interface server Tx/Rx loop exited.";
     }
-
-    /// Wait until server has initialised everything and enters its main loop:
-    void waitUntilReady() const {
-        while (!serverReady) {
-            std::this_thread::sleep_for(5ms);
-    }
-}
 
 public:
 
@@ -99,19 +122,21 @@ public:
     }
 
     struct State {
-        State() : value(1.f), stop(false), detach(false) {}
+        State() : prompt(""), steps(2), value(1.f), stop(false), isPlaying(true) {}
         std::string toString() const{
-            return "State(value=" + std::to_string(value) + ", stop=" + std::to_string(stop) + ", detach=" + std::to_string(detach) + ")";
+            return "State(prompt=" + prompt + ", steps=" + std::to_string(steps) + ", value=" + std::to_string(value) + ", stop=" + std::to_string(stop) +
+                   ", isPlaying=" + std::to_string(isPlaying) + ")";
         }
 
+        std::string prompt;
+        std::uint32_t steps;
         float value;
         bool stop;
-        bool detach;
+        bool isPlaying;
     };
 
     InterfaceServer(int portNumber)
         : port(portNumber),
-        stopServer(false),
         serverReady(false),
         stateUpdated(false) {}
 
@@ -140,11 +165,30 @@ public:
     /// server state can not be initialised until after the client
     /// has connected.
     void start() {
-        stopServer = false;
         serverReady = false;
         stateUpdated = false;
         thread.reset(new std::thread(&InterfaceServer::communicate, this));
-        waitUntilReady();
+    }
+
+    /// Wait until server has initialised everything and enters its main loop:
+    /// @return true when the server is ready.
+    bool waitUntilReady(std::uint32_t timeoutMs = 0) const {
+        // If timeoutMs is 0, wait indefinitely
+        if (timeoutMs == 0) {
+            while (serverReady == false) {
+                std::this_thread::sleep_for(5ms);
+            }
+            return true;
+        }
+
+        // Otherwise, use timeout logic
+        int attempts = timeoutMs / 5; // Convert to a number of 5ms attempts
+
+        for (int i = 0; i < attempts && serverReady == false; i++) {
+            std::this_thread::sleep_for(5ms);
+        }
+
+        return connection != nullptr && serverReady;
     }
 
     void initialiseVideoStream(std::size_t width, std::size_t height) {
@@ -156,7 +200,7 @@ public:
     }
 
     void stop() {
-        stopServer = true;
+        serverReady = false;
         if (thread != nullptr) {
         try {
             thread->join();
@@ -191,7 +235,6 @@ private:
     int port;
     TcpSocket serverSocket;
     std::unique_ptr<std::thread> thread;
-    std::atomic<bool> stopServer;
     std::atomic<bool> serverReady;
     std::atomic<bool> stateUpdated;
     std::unique_ptr<TcpSocket> connection;

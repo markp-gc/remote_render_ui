@@ -9,6 +9,10 @@ args = parser.parse_args()
 
 server = gui_server.InterfaceServer(args.port)
 server.start()
+while not server.wait_until_ready(500):
+    # Wait forever: this loop keeps the Python code responsive to ctrl-C
+    None
+
 gui_server.set_log_level("off")
 
 test_image = np.zeros((480, 640, 3), dtype=np.uint8)
@@ -30,22 +34,22 @@ while not server.get_state().stop:
     test_image[:, :, 1] = (shifted_x + y_coords) % 255   # Green
     test_image[:, :, 2] = y_coords % 255                 # Red
 
-    # Increment the offset for the next frame
+    # Increment the offset for the next frame:
     frame_offset = (frame_offset + 1) % test_image.shape[1]
 
-    # Send the updated image
+    # Send the updated image:
     server.send_image(test_image, convert_to_bgr=False)
 
-    # Send some fake progress updates (ported from C++ code)
+    # Send some fake progress updates:
     step = (step + 1) % total_steps
     server.update_progress(step, total_steps)
 
-    # Check state and show changes
+    # Check state and show changes:
     if server.state_changed():
         state = server.consume_state()
         print(f"Value: {state.value}")
 
-    # Sleep to avoid consuming too much CPU
-    time.sleep(0.005)  # 5 milliseconds
+    # Sleep 5ms to avoid consuming too much CPU:
+    time.sleep(0.005)
 
 server.stop()

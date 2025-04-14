@@ -17,9 +17,11 @@ NB_MODULE(gui_server, m) {
     nb::class_<InterfaceServer::State>(m, "State")
         .def(nb::init<>())
         .def("__repr__", &InterfaceServer::State::toString)
+        .def_rw("prompt", &InterfaceServer::State::prompt)
         .def_rw("value", &InterfaceServer::State::value)
         .def_rw("stop", &InterfaceServer::State::stop)
-        .def_rw("detach", &InterfaceServer::State::detach);
+        .def_rw("steps", &InterfaceServer::State::steps)
+        .def_rw("is_playing", &InterfaceServer::State::isPlaying);
 
     nb::class_<InterfaceServer>(m, "InterfaceServer")
         .def(nb::init<int>(), "port"_a)
@@ -27,11 +29,10 @@ NB_MODULE(gui_server, m) {
         .def("get_state", &InterfaceServer::getState, nb::rv_policy::reference)
         .def("state_changed", &InterfaceServer::stateChanged)
         .def("start", &InterfaceServer::start)
+        .def("wait_until_ready", &InterfaceServer::waitUntilReady)
         .def("initialise_video_stream", &InterfaceServer::initialiseVideoStream,
              "width"_a, "height"_a)
         .def("stop", &InterfaceServer::stop)
-        .def("update_progress", &InterfaceServer::updateProgress,
-             "step"_a, "total_steps"_a)
         .def("send_image", [](InterfaceServer& self, nb::ndarray<nb::numpy, uint8_t, nb::shape<-1, -1, 3>> array, bool convertToBGR) {
             // Convert numpy array to cv::Mat
             int height = array.shape(0);

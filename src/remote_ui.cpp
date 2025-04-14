@@ -31,8 +31,8 @@ boost::program_options::options_description getOptions() {
   ("port", po::value<int>()->default_value(3000), "Port number to connect on.")
   ("host", po::value<std::string>()->default_value("localhost"), "Host to connect to.")
   ("log-level", po::value<std::string>()->default_value("info"), "Set the log level to one of the following: 'trace', 'debug', 'info', 'warn', 'err', 'critical', 'off'.")
-  ("width,w", po::value<int>()->default_value(1320), "Main window width in pixels.")
-  ("height,h", po::value<int>()->default_value(800), "Main window height in pixels.");
+  ("width,w", po::value<int>()->default_value(1600), "Main window width in pixels.")
+  ("height,h", po::value<int>()->default_value(1200), "Main window height in pixels.");
   return desc;
 }
 
