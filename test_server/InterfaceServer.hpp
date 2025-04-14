@@ -60,39 +60,17 @@ class InterfaceServer {
             videoStream.reset(new LibAvWriter(videoIO));
             BOOST_LOG_TRIVIAL(debug) << "Video stream initialised.";
 
-            auto subs1 = receiver.subscribe("steps",
-                                            [&](const ComPacket::ConstSharedPacket& packet) {
-                                                deserialise(packet, state.steps);
-                                                BOOST_LOG_TRIVIAL(trace) << "New steps value: " << state.steps;
-                                                stateUpdated = true;
-                                            });
-
-            auto subs2 = receiver.subscribe("stop",
+            auto subs1 = receiver.subscribe("stop",
                                             [&](const ComPacket::ConstSharedPacket& packet) {
                                                 deserialise(packet, state.stop);
                                                 BOOST_LOG_TRIVIAL(trace) << "Render stopped by remote UI.";
                                                 stateUpdated = true;
                                             });
 
-            auto subs3 = receiver.subscribe("value",
+            auto subs2 = receiver.subscribe("value",
                                             [&](const ComPacket::ConstSharedPacket& packet) {
                                                 deserialise(packet, state.value);
                                                 BOOST_LOG_TRIVIAL(trace) << "New value: " << state.value;
-                                                stateUpdated = true;
-                                            });
-
-            auto subs4 = receiver.subscribe("prompt",
-                                            [&](const ComPacket::ConstSharedPacket& packet) {
-                                                deserialise(packet, state.prompt);
-                                                BOOST_LOG_TRIVIAL(trace) << "New prompt: " << state.prompt;
-                                                stateUpdated = true;
-                                            });
-
-            auto subs5 = receiver.subscribe("playback_state",
-                                            [&](const ComPacket::ConstSharedPacket& packet) {
-                                                deserialise(packet, state.isPlaying);
-                                                BOOST_LOG_TRIVIAL(trace) << "Playback state changed: "
-                                                    << (state.isPlaying ? "playing" : "paused");
                                                 stateUpdated = true;
                                             });
 
@@ -122,17 +100,13 @@ public:
     }
 
     struct State {
-        State() : prompt(""), steps(2), value(1.f), stop(false), isPlaying(true) {}
+        State() : value(1.f), stop(false) {}
         std::string toString() const{
-            return "State(prompt=" + prompt + ", steps=" + std::to_string(steps) + ", value=" + std::to_string(value) + ", stop=" + std::to_string(stop) +
-                   ", isPlaying=" + std::to_string(isPlaying) + ")";
+            return "State(value=" + std::to_string(value) + ", stop=" + std::to_string(stop) + ")";
         }
 
-        std::string prompt;
-        std::uint32_t steps;
         float value;
         bool stop;
-        bool isPlaying;
     };
 
     InterfaceServer(int portNumber)
@@ -215,7 +189,7 @@ public:
 
     void updateProgress(int step, int totalSteps) {
         if (sender) {
-        serialise(*sender, "progress", step / (float)totalSteps);
+            serialise(*sender, "progress", step / (float)totalSteps);
         }
     }
 
@@ -223,7 +197,7 @@ public:
         VideoFrame frame(ldrImage.data, AV_PIX_FMT_BGR24, ldrImage.cols, ldrImage.rows, ldrImage.step);
         bool ok = videoStream->PutVideoFrame(frame);
         if (!ok) {
-        BOOST_LOG_TRIVIAL(warning) << "Could not send video frame.";
+            BOOST_LOG_TRIVIAL(warning) << "Could not send video frame.";
         }
     }
 

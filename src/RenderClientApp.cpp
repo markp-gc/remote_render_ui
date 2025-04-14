@@ -28,9 +28,6 @@ RenderClientApp::RenderClientApp(const nanogui::Vector2i& size, PacketMuxer& tx,
 }
 
 RenderClientApp::~RenderClientApp() {
-  // Tell the server we are disconnecting so
-  // it can cleanly tear down its communications:
-  serialise(sender, "detach", true);
 }
 
 bool RenderClientApp::keyboard_event(int key, int scancode, int action, int modifiers) {

@@ -16,7 +16,7 @@ boost::program_options::options_description getOptions() {
   desc.add_options()
   ("help", "Show command help.")
   ("port", po::value<int>()->default_value(4242), "Port to listen for connections on.")
-  ("log-level", po::value<std::string>()->default_value("debug"), "Set the log level to one of the following: 'trace', 'debug', 'info', 'warn', 'err', 'critical', 'off'.");
+  ("log-level", po::value<std::string>()->default_value("info"), "Set the log level to one of the following: 'trace', 'debug', 'info', 'warn', 'err', 'critical', 'off'.");
   return desc;
 }
 
@@ -81,7 +81,7 @@ int main(int argc, char* argv[]) {
                 BOOST_LOG_TRIVIAL(info) << state.toString();
             }
 
-            // Sleep to avoid consuming too much CPU:
+            // Sleep 5ms to avoid consuming too much CPU:
             std::this_thread::sleep_for(std::chrono::milliseconds(5));
         }
 
@@ -89,9 +89,9 @@ int main(int argc, char* argv[]) {
         BOOST_LOG_TRIVIAL(error) << "Exception in main loop: " << e.what();
     }
 
-    BOOST_LOG_TRIVIAL(info) << "Stopping server...";
+    BOOST_LOG_TRIVIAL(info) << "Shutting down server...";
     server.stop();
-    BOOST_LOG_TRIVIAL(info) << "Server stopped. Exiting.";
+    BOOST_LOG_TRIVIAL(info) << "Exiting.";
 
     return EXIT_SUCCESS;
 }

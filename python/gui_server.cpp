@@ -17,17 +17,15 @@ NB_MODULE(gui_server, m) {
     nb::class_<InterfaceServer::State>(m, "State")
         .def(nb::init<>())
         .def("__repr__", &InterfaceServer::State::toString)
-        .def_rw("prompt", &InterfaceServer::State::prompt)
         .def_rw("value", &InterfaceServer::State::value)
-        .def_rw("stop", &InterfaceServer::State::stop)
-        .def_rw("steps", &InterfaceServer::State::steps)
-        .def_rw("is_playing", &InterfaceServer::State::isPlaying);
+        .def_rw("stop", &InterfaceServer::State::stop);
 
     nb::class_<InterfaceServer>(m, "InterfaceServer")
         .def(nb::init<int>(), "port"_a)
         .def("consume_state", &InterfaceServer::consumeState)
         .def("get_state", &InterfaceServer::getState, nb::rv_policy::reference)
         .def("state_changed", &InterfaceServer::stateChanged)
+        .def("update_progress", &InterfaceServer::updateProgress)
         .def("start", &InterfaceServer::start)
         .def("wait_until_ready", &InterfaceServer::waitUntilReady)
         .def("initialise_video_stream", &InterfaceServer::initialiseVideoStream,
