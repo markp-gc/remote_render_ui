@@ -34,6 +34,11 @@ int main(int argc, char* argv[]) {
     // Create and start the server
     InterfaceServer server(port);
     server.start();
+    const bool ok = server.waitUntilReady();
+    if (!ok) {
+        BOOST_LOG_TRIVIAL(error) << "Failed to start server";
+        return EXIT_FAILURE;
+    }
 
     // Create a simple test image to send periodically
     cv::Mat testImage(480, 640, CV_8UC3, cv::Scalar(0, 0, 0));
@@ -88,5 +93,5 @@ int main(int argc, char* argv[]) {
     server.stop();
     BOOST_LOG_TRIVIAL(info) << "Server stopped. Exiting.";
 
-    return 0;
+    return EXIT_SUCCESS;
 }

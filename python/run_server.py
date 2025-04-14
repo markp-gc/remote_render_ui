@@ -9,6 +9,10 @@ args = parser.parse_args()
 
 server = gui_server.InterfaceServer(args.port)
 server.start()
+while not server.wait_until_ready(500):
+    # Wait forever: this loop keeps the Python code responsive to ctrl-C
+    None
+
 gui_server.set_log_level("off")
 
 test_image = np.zeros((480, 640, 3), dtype=np.uint8)
@@ -38,7 +42,6 @@ while not server.get_state().stop:
 
     # Send some fake progress updates (ported from C++ code)
     step = (step + 1) % total_steps
-    server.update_progress(step, total_steps)
 
     # Check state and show changes
     if server.state_changed():
